@@ -2264,3 +2264,240 @@ footer {
         max-height: 95vh;
     }
 }
+
+/* ============================================ */
+/* USER SIDEBAR - ESTILOS MEJORADOS */
+/* ============================================ */
+.user-sidebar {
+    position: fixed;
+    right: -400px;
+    top: 0;
+    width: 350px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--blanco), var(--gris));
+    box-shadow: -5px 0 30px rgba(3, 4, 94, 0.2);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2002;
+    display: flex;
+    flex-direction: column;
+    border-left: 3px solid var(--azul-brillante);
+}
+
+.user-sidebar.active {
+    right: 0;
+}
+
+/* HEADER DEL USUARIO */
+.user-header {
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--azul-profundo), var(--azul-francia));
+    color: var(--blanco);
+    position: relative;
+    text-align: center;
+    border-bottom: 3px solid var(--azul-brillante);
+}
+
+.user-avatar {
+    margin-bottom: 1rem;
+    position: relative;
+    display: inline-block;
+}
+
+.user-avatar i {
+    font-size: 5rem;
+    color: var(--blanco);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    padding: 0.5rem;
+    border: 3px solid var(--azul-brillante);
+}
+
+.user-header h3 {
+    margin-bottom: 0.3rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.user-header p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+    color: var(--azul-claro);
+}
+
+.close-user {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.close-user:hover {
+    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* MENÚ DEL USUARIO */
+.user-menu {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.user-menu a {
+    padding: 1rem 1.2rem;
+    color: var(--azul-profundo);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.user-menu a:hover {
+    background: linear-gradient(135deg, var(--azul-claro), var(--cian-claro));
+    padding-left: 1.8rem;
+    border-color: var(--azul-brillante);
+    box-shadow: 0 3px 10px rgba(0, 119, 182, 0.1);
+}
+
+.user-menu a i {
+    width: 24px;
+    font-size: 1.2rem;
+    color: var(--azul-brillante);
+}
+
+/* ESTADÍSTICAS DEL USUARIO */
+.user-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 2px solid var(--azul-claro);
+    margin-top: auto;
+    background: rgba(0, 119, 182, 0.05);
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 10px;
+    transition: transform 0.3s;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--azul-brillante);
+    margin-bottom: 0.25rem;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--gris-oscuro);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ESTADO DE USUARIO EN HEADER */
+.user-icon {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: var(--azul-profundo);
+    transition: all 0.3s;
+}
+
+.user-icon:hover {
+    color: var(--azul-brillante);
+    transform: scale(1.1);
+}
+
+.user-status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #28a745;
+    border-radius: 50%;
+    border: 2px solid var(--blanco);
+    display: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.user-status.logged-in {
+    display: block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 5px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+/* MENÚ PARA INVITADO VS REGISTRADO */
+#user-menu-invitado,
+#user-menu-registrado {
+    display: none;
+}
+
+#user-menu-invitado.active,
+#user-menu-registrado.active {
+    display: flex;
+}
+
+/* ANIMACIÓN DE ENTRADA */
+@keyframes slideInUser {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .user-sidebar {
+        width: 100%;
+    }
+    
+    .user-header {
+        padding: 1.5rem;
+    }
+    
+    .user-avatar i {
+        font-size: 4rem;
+    }
+    
+    .user-menu a {
+        padding: 0.8rem 1rem;
+    }
+}

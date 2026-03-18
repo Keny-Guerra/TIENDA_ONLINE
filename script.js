@@ -1414,31 +1414,205 @@ function actualizarUIUsuario() {
     const userName = document.getElementById('user-name');
     const userEmail = document.getElementById('user-email');
     
+    console.log("Actualizando UI para usuario:", usuarioActual); // Para debug
+    
     if (usuarioActual) {
         // Usuario logueado
         userStatus.classList.add('logged-in');
+        
+        // Mostrar menú de registrado
         userMenuInvitado.style.display = 'none';
         userMenuRegistrado.style.display = 'flex';
         userStats.style.display = 'grid';
         
+        // Actualizar información del usuario
         userName.textContent = usuarioActual.nombres + ' ' + usuarioActual.apellidos;
         userEmail.textContent = usuarioActual.email;
         
-        // Actualizar estadísticas
-        document.getElementById('pedidos-count').textContent = usuarioActual.pedidos.length;
-        document.getElementById('favoritos-count').textContent = usuarioActual.favoritos.length;
-        document.getElementById('puntos-value').textContent = Math.floor(usuarioActual.pedidos.length * 100);
+        // Actualizar estadísticas (con datos de ejemplo si no existen)
+        const pedidosCount = usuarioActual.pedidos ? usuarioActual.pedidos.length : 0;
+        const favoritosCount = usuarioActual.favoritos ? usuarioActual.favoritos.length : 0;
+        const puntos = pedidosCount * 100;
+        
+        document.getElementById('pedidos-count').textContent = pedidosCount;
+        document.getElementById('favoritos-count').textContent = favoritosCount;
+        document.getElementById('puntos-value').textContent = puntos;
+        
+        // Mostrar notificación de bienvenida solo si acaba de iniciar sesión
+        if (!usuarioActual._notificado) {
+            mostrarNotificacion('👋 ¡Bienvenido ' + usuarioActual.nombres + '!', 'success');
+            usuarioActual._notificado = true;
+        }
     } else {
         // Invitado
         userStatus.classList.remove('logged-in');
+        
+        // Mostrar menú de invitado
         userMenuInvitado.style.display = 'flex';
         userMenuRegistrado.style.display = 'none';
         userStats.style.display = 'none';
         
+        // Información por defecto
         userName.textContent = 'Invitado';
-        userEmail.textContent = '';
+        userEmail.textContent = 'No has iniciado sesión';
     }
 }
+
+// ============================================
+// MEJORAR LA FUNCIÓN DE REGISTRO
+// ============================================
+function registrarUsuario() {
+    console.log("Función registrarUsuario ejecutándose");
+    
+    // Obtener valores
+    const nombres = document.getElementById('reg-nombres')?.value;
+    const apellidos = document.getElementById('reg-apellidos')?.value;
+    const email = document.getElementById('reg-email')?.value;
+    const telefono = document.getElementById('reg-telefono')?.value;
+    const password = document.getElementById('reg-password')?.value;
+    const confirmPassword = document.getElementById('reg-confirm-password')?.value;
+    const acceptTerms = document.getElementById('accept-terms')?.checked;
+    
+    // Validación básica
+    if (!nombres || !apellidos || !email || !telefono || !password) {
+        mostrarNotificacion('❌ Todos los campos son obligatorios', 'error');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        mostrarNotificacion('❌ Las contraseñas no coinciden', 'error');
+        return;
+    }
+    
+    if (!acceptTerms) {
+        mostrarNotificacion('❌ Debes aceptar los términos y condiciones', 'error');
+        return;
+    }
+    
+    // Mostrar loading en el botón
+    const btn = document.getElementById('register-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CREANDO CUENTA...';
+    btn.disabled = true;
+    
+    // Simular tiempo de procesamiento
+    setTimeout(() => {
+        // Crear usuario
+        const nuevoUsuario = {
+            id: Date.now(),
+            nombres: nombres,
+            apellidos: apellidos,
+            email: email,
+            telefono: telefono,
+            pedidos: [],
+            favoritos: [],
+            _notificado: false
+        };
+        
+        // Guardar en variable global
+        usuarioActual = nuevoUsuario;
+        
+        // Guardar en localStorage
+        const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+        usuarios.push(nuevoUsuario);
+        localStorage.setItem('usuarios', JSON.stringify(usuarios));
+        
+        // Actualizar UI
+        actualizarUIUsuario();
+        
+        // Restaurar botón
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        // Cerrar modal
+        cerrarAuthModal();
+        
+        // Limpiar formulario
+        document.getElementById('register-form-element')?.reset();
+        
+        // Mostrar mensaje de éxito
+        mostrarNotificacion('✅ ¡Registro exitoso!', 'success');
+        
+    }, 1000);
+}
+
+// ============================================
+// FUNCIÓN PARA ABRIR EL SIDEBAR DE USUARIO
+// ============================================
+function toggleUserSidebar() {
+    const sidebar = document.getElementById('user-sidebar');
+    sidebar.classList.toggle('active');
+    
+    // Si el sidebar se abre y hay usuario, actualizar stats
+    if (sidebar.classList.contains('active') && usuarioActual) {
+        actualizarUIUsuario();
+    }
+}
+
+// ============================================
+// FUNCIONES DEL MENÚ DE USUARIO
+// ============================================
+function verPerfil() {
+    mostrarNotificacion('📝 Funcionalidad de perfil en desarrollo', 'info');
+    toggleUserSidebar();
+}
+
+function verPedidos() {
+    if (usuarioActual && usuarioActual.pedidos && usuarioActual.pedidos.length > 0) {
+        let mensaje = '📦 TUS PEDIDOS:\n\n';
+        usuarioActual.pedidos.forEach((p, index) => {
+            mensaje += `${index + 1}. Código: GOL-${p.codigo || Date.now()}\n`;
+            mensaje += `   Total: S/ ${p.total || 0}\n`;
+            mensaje += `   Fecha: ${p.fecha || new Date().toLocaleDateString()}\n\n`;
+        });
+        alert(mensaje);
+    } else {
+        mostrarNotificacion('📦 No tienes pedidos aún', 'info');
+    }
+    toggleUserSidebar();
+}
+
+function verDirecciones() {
+    mostrarNotificacion('📍 Funcionalidad de direcciones en desarrollo', 'info');
+    toggleUserSidebar();
+}
+
+function verFavoritos() {
+    if (usuarioActual && usuarioActual.favoritos && usuarioActual.favoritos.length > 0) {
+        mostrarNotificacion(`❤️ Tienes ${usuarioActual.favoritos.length} productos favoritos`, 'info');
+    } else {
+        mostrarNotificacion('❤️ No tienes favoritos aún', 'info');
+    }
+    toggleUserSidebar();
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    actualizarUIUsuario();
+    mostrarNotificacion('👋 Sesión cerrada correctamente', 'info');
+    toggleUserSidebar();
+}
+
+// ============================================
+// VERIFICAR AL CARGAR LA PÁGINA
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Página cargada - Inicializando...");
+    
+    // Verificar si hay usuario en localStorage
+    const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    if (usuarios.length > 0) {
+        // No auto-login, solo tener disponibles
+        console.log("Usuarios disponibles:", usuarios.length);
+    }
+    
+    // Asegurar que el botón de usuario está enlazado
+    const userIcon = document.querySelector('.user-icon');
+    if (userIcon && !userIcon.getAttribute('onclick')) {
+        userIcon.setAttribute('onclick', 'toggleUserSidebar()');
+    }
+});
+
 
 // ============================================
 // FUNCIONES DE PAGO
