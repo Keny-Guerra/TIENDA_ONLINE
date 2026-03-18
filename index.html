@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOLAZO STORE - Tienda Deportiva</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="header-top">
+                <div class="logo">
+                    <h1>GOLAZO STORE</h1>
+                </div>
+                <div class="header-icons">
+                    <div class="search-box">
+                        <input type="text" placeholder="Buscar productos...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="user-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="cart-icon" onclick="toggleCart()">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- MENÚ PRINCIPAL -->
+            <nav class="main-nav">
+                <ul>
+                    <!-- LA EMPRESA - Desplegable con iconos -->
+                    <li class="dropdown">
+                        <a href="#"><i class="fas fa-building"></i> LA EMPRESA <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="mostrarInfo('quienes-somos')"><i class="fas fa-users"></i> Quiénes Somos</a>
+                            <a href="#" onclick="mostrarInfo('mision')"><i class="fas fa-bullseye"></i> Misión</a>
+                            <a href="#" onclick="mostrarInfo('vision')"><i class="fas fa-eye"></i> Visión</a>
+                            <a href="#" onclick="mostrarInfo('valores')"><i class="fas fa-heart"></i> Valores</a>
+                        </div>
+                    </li>
+                    
+                    <!-- CAMISETAS - Desplegable -->
+                    <li class="dropdown">
+                        <a href="#"><i class="fas fa-tshirt"></i> CAMISETAS <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="filtrarProductos('camisetas', 'futbol')"><i class="fas fa-futbol"></i> Fútbol</a>
+                            <a href="#" onclick="filtrarProductos('camisetas', 'basquet')"><i class="fas fa-basketball-ball"></i> Básquet</a>
+                            <a href="#" onclick="filtrarProductos('camisetas', 'voley')"><i class="fas fa-volleyball-ball"></i> Vóley</a>
+                        </div>
+                    </li>
+                    
+                    <!-- ZAPATILLAS - Desplegable -->
+                    <li class="dropdown">
+                        <a href="#"><i class="fas fa-shoe-prints"></i> ZAPATILLAS <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="filtrarProductos('zapatillas', 'futbol')"><i class="fas fa-futbol"></i> Fútbol</a>
+                            <a href="#" onclick="filtrarProductos('zapatillas', 'basquet')"><i class="fas fa-basketball-ball"></i> Básquet</a>
+                            <a href="#" onclick="filtrarProductos('zapatillas', 'voley')"><i class="fas fa-volleyball-ball"></i> Vóley</a>
+                        </div>
+                    </li>
+                    
+                    <!-- POLOS - Desplegable -->
+                    <li class="dropdown">
+                        <a href="#"><i class="fas fa-tshirt"></i> POLOS <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="filtrarProductos('polos', 'futbol')"><i class="fas fa-futbol"></i> Fútbol</a>
+                            <a href="#" onclick="filtrarProductos('polos', 'basquet')"><i class="fas fa-basketball-ball"></i> Básquet</a>
+                            <a href="#" onclick="filtrarProductos('polos', 'voley')"><i class="fas fa-volleyball-ball"></i> Vóley</a>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- HERO SECTION -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>NUEVA TEMPORADA 2024</h2>
+                <p>Descubre lo último en moda deportiva</p>
+                <a href="#" class="btn" onclick="mostrarTodos()">VER COLECCIÓN COMPLETA</a>
+            </div>
+        </section>
+
+        <!-- SECCIONES DE INFORMACIÓN (CON ICONOS) -->
+        <div id="quienes-somos" class="info-section" style="display: none;">
+            <div class="info-header">
+                <i class="fas fa-users"></i>
+                <h2>Quiénes Somos</h2>
+            </div>
+            <div class="info-content">
+                <p>GOLAZO STORE nació en 2024 de la pasión por el deporte. Somos una tienda especializada en indumentaria deportiva de alta calidad, ofreciendo las mejores marcas y diseños para los verdaderos amantes del deporte.</p>
+                <p>Nuestro compromiso es brindar a nuestros clientes productos originales, con la mejor atención y asesoramiento personalizado.</p>
+                <div class="info-stats">
+                    <div class="stat">
+                        <i class="fas fa-store"></i>
+                        <span>1 Tienda Online</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-box"></i>
+                        <span>+1000 Productos</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-users"></i>
+                        <span>+500 Clientes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mision" class="info-section" style="display: none;">
+            <div class="info-header">
+                <i class="fas fa-bullseye"></i>
+                <h2>Misión</h2>
+            </div>
+            <div class="info-content">
+                <p>Proporcionar a nuestros clientes la mejor experiencia de compra en indumentaria deportiva, ofreciendo productos de calidad que combinan rendimiento, estilo y comodidad para la práctica deportiva.</p>
+                <div class="mision-vision-box">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Calidad garantizada en cada producto</p>
+                </div>
+                <div class="mision-vision-box">
+                    <i class="fas fa-truck"></i>
+                    <p>Envíos rápidos a todo el Perú</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="vision" class="info-section" style="display: none;">
+            <div class="info-header">
+                <i class="fas fa-eye"></i>
+                <h2>Visión</h2>
+            </div>
+            <div class="info-content">
+                <p>Ser la tienda deportiva líder en el mercado peruano, reconocida por nuestra calidad, variedad y compromiso con el cliente, expandiendo nuestra presencia a nivel nacional para el 2028.</p>
+                <div class="vision-stats">
+                    <div class="stat">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Crecimiento continuo</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-globe"></i>
+                        <span>Expansión nacional</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="valores" class="info-section" style="display: none;">
+            <div class="info-header">
+                <i class="fas fa-heart"></i>
+                <h2>Valores</h2>
+            </div>
+            <div class="valores-grid">
+                <div class="valor-item">
+                    <i class="fas fa-fire"></i>
+                    <h3>Pasión</h3>
+                    <p>Vivimos el deporte intensamente</p>
+                </div>
+                <div class="valor-item">
+                    <i class="fas fa-medal"></i>
+                    <h3>Calidad</h3>
+                    <p>Seleccionamos los mejores productos</p>
+                </div>
+                <div class="valor-item">
+                    <i class="fas fa-handshake"></i>
+                    <h3>Compromiso</h3>
+                    <p>Con nuestros clientes</p>
+                </div>
+                <div class="valor-item">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>Innovación</h3>
+                    <p>Siempre a la vanguardia</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TÍTULO DE CATEGORÍA ACTUAL -->
+        <div class="categoria-titulo" id="categoria-titulo">
+            <h2>TODOS LOS PRODUCTOS</h2>
+        </div>
+
+        <!-- PRODUCTOS -->
+        <section class="productos" id="productos-section">
+            <div class="productos-grid" id="productos-container">
+                <!-- Los productos se cargarán dinámicamente -->
+            </div>
+        </section>
+
+        <!-- NEWSLETTER -->
+        <section class="newsletter">
+            <div class="newsletter-content">
+                <h3>¡NO TE PIERDAS NINGUNA NOVEDAD!</h3>
+                <p>Suscríbete y recibe las últimas noticias y ofertas exclusivas</p>
+                <form class="newsletter-form" onsubmit="event.preventDefault(); mostrarNotificacion('¡Gracias por suscribirte!');">
+                    <input type="email" placeholder="Tu correo electrónico" required>
+                    <button type="submit">SUSCRIBIRME</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- MODAL DE PRODUCTO -->
+        <div id="product-modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="cerrarModal()">&times;</span>
+                <div class="modal-body" id="modal-body">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CARRITO SIDEBAR -->
+        <div id="cart-sidebar" class="cart-sidebar">
+            <div class="cart-header">
+                <h3><i class="fas fa-shopping-cart"></i> Carrito de Compras</h3>
+                <span class="close-cart" onclick="toggleCart()">&times;</span>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <!-- Items del carrito -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cart-total">S/ 0.00</span>
+                </div>
+                <button class="btn-checkout" onclick="procesarCompra()">
+                    <i class="fas fa-lock"></i> COMPRAR AHORA
+                </button>
+            </div>
+        </div>
+
+        <!-- FOOTER MODERNO -->
+        <footer>
+            <div class="footer-wave">
+                <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path>
+                </svg>
+            </div>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4><i class="fas fa-store"></i> GOLAZO STORE</h4>
+                    <p>Tu tienda deportiva de confianza. Calidad y pasión en cada producto.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-whatsapp"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-tiktok"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4><i class="fas fa-link"></i> ENLACES RÁPIDOS</h4>
+                    <ul>
+                        <li><a href="#" onclick="mostrarInfo('quienes-somos')"><i class="fas fa-chevron-right"></i> Quiénes Somos</a></li>
+                        <li><a href="#" onclick="mostrarInfo('mision')"><i class="fas fa-chevron-right"></i> Misión</a></li>
+                        <li><a href="#" onclick="mostrarInfo('vision')"><i class="fas fa-chevron-right"></i> Visión</a></li>
+                        <li><a href="#" onclick="mostrarInfo('valores')"><i class="fas fa-chevron-right"></i> Valores</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4><i class="fas fa-headset"></i> ATENCIÓN AL CLIENTE</h4>
+                    <ul>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Preguntas Frecuentes</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Políticas de Envío</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Devoluciones</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Términos y Condiciones</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4><i class="fas fa-envelope"></i> CONTACTO</h4>
+                    <ul class="contact-info">
+                        <li><i class="fas fa-map-marker-alt"></i> Av. Deportiva 123, Arequipa - Perú</li>
+                        <li><i class="fas fa-phone"></i> +51 999 999 999</li>
+                        <li><i class="fas fa-envelope"></i> info@golazostore.pe</li>
+                    </ul>
+                    <div class="payment-methods">
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-amex"></i>
+                        <i class="fab fa-cc-paypal"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p>&copy; 2024 GOLAZO STORE - Todos los derechos reservados</p>
+                    <div class="footer-links">
+                        <a href="#">Privacidad</a>
+                        <a href="#">Términos</a>
+                        <a href="#">Cookies</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
