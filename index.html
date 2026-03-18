@@ -232,6 +232,422 @@
                 </button>
             </div>
         </div>
+        <!-- ============================================ -->
+        <!-- MODAL DE REGISTRO/INICIO DE SESIÓN - CORREGIDO -->
+        <!-- ============================================ -->
+        <div id="auth-modal" class="modal" style="display: none;">
+            <div class="modal-content auth-modal-content">
+                <span class="close" onclick="cerrarAuthModal()">&times;</span>
+                
+                <!-- TABS DE REGISTRO/LOGIN -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="cambiarTab('login')" id="login-tab">INICIAR SESIÓN</button>
+                    <button class="auth-tab" onclick="cambiarTab('register')" id="register-tab">REGISTRARSE</button>
+                </div>
+
+                <!-- FORMULARIO DE LOGIN -->
+                <div id="login-form" class="auth-form active">
+                    <div class="auth-header">
+                        <i class="fas fa-user-circle"></i>
+                        <h3>Bienvenido de vuelta</h3>
+                        <p>Ingresa tus datos para continuar</p>
+                    </div>
+                    <form onsubmit="event.preventDefault(); iniciarSesion()">
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> Email</label>
+                            <input type="email" id="login-email" placeholder="tucorreo@ejemplo.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Contraseña</label>
+                            <div class="password-input-container">
+                                <input type="password" id="login-password" placeholder="••••••••" required>
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('login-password')"></i>
+                            </div>
+                        </div>
+                        <div class="form-options">
+                            <label class="remember-me">
+                                <input type="checkbox"> Recordarme
+                            </label>
+                            <a href="#" onclick="recuperarContrasena(); return false;">¿Olvidaste tu contraseña?</a>
+                        </div>
+                        <button type="submit" class="btn-auth">
+                            <i class="fas fa-sign-in-alt"></i> INICIAR SESIÓN
+                        </button>
+                    </form>
+                    
+                    <div class="auth-divider">
+                        <span>o continúa con</span>
+                    </div>
+                    
+                    <div class="social-auth">
+                        <button type="button" class="social-btn google" onclick="socialLogin('google')">
+                            <i class="fab fa-google"></i> Google
+                        </button>
+                        <button type="button" class="social-btn facebook" onclick="socialLogin('facebook')">
+                            <i class="fab fa-facebook-f"></i> Facebook
+                        </button>
+                    </div>
+                    
+                    <div class="auth-footer">
+                        <p>¿No tienes cuenta? <a href="#" onclick="cambiarTab('register'); return false;">Regístrate aquí</a></p>
+                    </div>
+                </div>
+
+                <!-- FORMULARIO DE REGISTRO - COMPLETO CON BOTÓN -->
+                <div id="register-form" class="auth-form">
+                    <div class="auth-header">
+                        <i class="fas fa-user-plus"></i>
+                        <h3>Crear cuenta nueva</h3>
+                        <p>Completa tus datos para registrarte</p>
+                    </div>
+                    
+                    <form id="register-form-element" onsubmit="event.preventDefault(); registrarUsuario()">
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label><i class="fas fa-user"></i> Nombres *</label>
+                                <input type="text" id="reg-nombres" placeholder="Ej: Juan Carlos" required>
+                            </div>
+                            <div class="form-group half">
+                                <label><i class="fas fa-user"></i> Apellidos *</label>
+                                <input type="text" id="reg-apellidos" placeholder="Ej: Pérez García" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> Correo Electrónico *</label>
+                            <input type="email" id="reg-email" placeholder="tucorreo@ejemplo.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Teléfono *</label>
+                            <input type="tel" id="reg-telefono" placeholder="999 999 999" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Contraseña *</label>
+                            <div class="password-input-container">
+                                <input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" required>
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('reg-password')"></i>
+                            </div>
+                            <div class="password-strength" id="password-strength">
+                                <div class="strength-bar"></div>
+                            </div>
+                            <small class="password-hint">Usa al menos 8 caracteres, una mayúscula y un número</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Confirmar Contraseña *</label>
+                            <div class="password-input-container">
+                                <input type="password" id="reg-confirm-password" placeholder="Repite tu contraseña" required>
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('reg-confirm-password')"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-group terms">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="accept-terms" required>
+                                <span>Acepto los <a href="#" onclick="mostrarTerminos(); return false;">Términos y Condiciones</a> y la <a href="#" onclick="mostrarPrivacidad(); return false;">Política de Privacidad</a></span>
+                            </label>
+                        </div>
+
+                        <!-- BOTÓN DE REGISTRO - AHORA SÍ APARECE -->
+                        <button type="submit" class="btn-auth" id="register-btn">
+                            <i class="fas fa-user-plus"></i> CREAR CUENTA
+                        </button>
+
+                        <div class="auth-footer">
+                            <p>¿Ya tienes una cuenta? <a href="#" onclick="cambiarTab('login'); return false;">Inicia sesión aquí</a></p>
+                        </div>
+                    </form>
+
+                    <div class="auth-divider">
+                        <span>o regístrate con</span>
+                    </div>
+
+                    <div class="social-auth">
+                        <button type="button" class="social-btn google" onclick="socialLogin('google')">
+                            <i class="fab fa-google"></i> Google
+                        </button>
+                        <button type="button" class="social-btn facebook" onclick="socialLogin('facebook')">
+                            <i class="fab fa-facebook-f"></i> Facebook
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+<!-- ============================================ -->
+<!-- MODAL DE MÉTODOS DE PAGO -->
+<!-- ============================================ -->
+<div id="pago-modal" class="modal" style="display: none;">
+    <div class="modal-content pago-modal-content">
+        <span class="close" onclick="cerrarPagoModal()">&times;</span>
+        
+        <div class="pago-header">
+            <i class="fas fa-lock"></i>
+            <h2>Finalizar Compra</h2>
+            <p>Compra 100% segura - Tus datos están protegidos</p>
+        </div>
+
+        <!-- PROGRESO DE COMPRA -->
+        <div class="checkout-progress">
+            <div class="progress-step active" id="step1">
+                <div class="step-number">1</div>
+                <span>Resumen</span>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" id="step2">
+                <div class="step-number">2</div>
+                <span>Pago</span>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" id="step3">
+                <div class="step-number">3</div>
+                <span>Confirmación</span>
+            </div>
+        </div>
+
+        <!-- PASO 1: RESUMEN DE COMPRA -->
+        <div id="step1-content" class="step-content active">
+            <div class="resumen-compra">
+                <h3><i class="fas fa-shopping-bag"></i> Resumen de tu compra</h3>
+                <div class="resumen-items" id="resumen-items">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="resumen-totales">
+                    <div class="total-line">
+                        <span>Subtotal:</span>
+                        <span id="resumen-subtotal">S/ 0.00</span>
+                    </div>
+                    <div class="total-line">
+                        <span>Envío:</span>
+                        <span id="resumen-envio">S/ 15.00</span>
+                    </div>
+                    <div class="total-line total-final">
+                        <span>TOTAL:</span>
+                        <span id="resumen-total">S/ 0.00</span>
+                    </div>
+                </div>
+                <button class="btn-continuar" onclick="irAPaso2()">
+                    CONTINUAR AL PAGO <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PASO 2: MÉTODOS DE PAGO -->
+        <div id="step2-content" class="step-content">
+            <div class="metodos-pago">
+                <h3><i class="fas fa-credit-card"></i> Selecciona método de pago</h3>
+                
+                <!-- TARJETA DE CRÉDITO/DÉBITO -->
+                <div class="metodo-pago-card" onclick="seleccionarMetodo('tarjeta')">
+                    <div class="metodo-header">
+                        <div class="metodo-info">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Tarjeta de Crédito/Débito</span>
+                        </div>
+                        <div class="metodo-icons">
+                            <i class="fab fa-cc-visa"></i>
+                            <i class="fab fa-cc-mastercard"></i>
+                            <i class="fab fa-cc-amex"></i>
+                            <i class="fab fa-cc-diners-club"></i>
+                        </div>
+                    </div>
+                    <div class="metodo-form" id="tarjeta-form" style="display: none;">
+                        <div class="form-group">
+                            <label>Número de tarjeta</label>
+                            <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatearTarjeta(this)">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label>Fecha exp.</label>
+                                <input type="text" placeholder="MM/AA" maxlength="5">
+                            </div>
+                            <div class="form-group half">
+                                <label>CVV</label>
+                                <input type="text" placeholder="123" maxlength="3">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre en tarjeta</label>
+                            <input type="text" placeholder="Como aparece en la tarjeta">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- YAPE -->
+                <div class="metodo-pago-card" onclick="seleccionarMetodo('yape')">
+                    <div class="metodo-header">
+                        <div class="metodo-info">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Yape</span>
+                        </div>
+                        <img src="https://via.placeholder.com/50x20/00b4d8/ffffff?text=YAPE" alt="Yape" style="height: 20px;">
+                    </div>
+                    <div class="metodo-form" id="yape-form" style="display: none;">
+                        <div class="yape-info">
+                            <p>Escanea el código QR con tu app de Yape</p>
+                            <div class="qr-code">
+                                <i class="fas fa-qrcode" style="font-size: 150px; color: var(--azul-profundo);"></i>
+                            </div>
+                            <p>O transfiere al número: <strong>999 999 999</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLIN -->
+                <div class="metodo-pago-card" onclick="seleccionarMetodo('plin')">
+                    <div class="metodo-header">
+                        <div class="metodo-info">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Plin</span>
+                        </div>
+                        <img src="https://via.placeholder.com/50x20/0096c7/ffffff?text=PLIN" alt="Plin" style="height: 20px;">
+                    </div>
+                    <div class="metodo-form" id="plin-form" style="display: none;">
+                        <div class="plin-info">
+                            <p>Número Plin: <strong>999 999 999</strong></p>
+                            <p>Nombre: <strong>GOLAZO STORE</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRANSFERENCIA BANCARIA -->
+                <div class="metodo-pago-card" onclick="seleccionarMetodo('transferencia')">
+                    <div class="metodo-header">
+                        <div class="metodo-info">
+                            <i class="fas fa-university"></i>
+                            <span>Transferencia Bancaria</span>
+                        </div>
+                    </div>
+                    <div class="metodo-form" id="transferencia-form" style="display: none;">
+                        <div class="banco-info">
+                            <p><strong>BCP</strong></p>
+                            <p>Cuenta: 191-99999999-0-99</p>
+                            <p>CCI: 00219119999999909999</p>
+                            <p>Beneficiario: GOLAZO STORE SAC</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EFECTIVO (Pago contra entrega) -->
+                <div class="metodo-pago-card" onclick="seleccionarMetodo('efectivo')">
+                    <div class="metodo-header">
+                        <div class="metodo-info">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Efectivo (Contra entrega)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pago-actions">
+                    <button class="btn-volver" onclick="volverAPaso1()">
+                        <i class="fas fa-arrow-left"></i> VOLVER
+                    </button>
+                    <button class="btn-pagar" onclick="procesarPago()">
+                        <i class="fas fa-lock"></i> PAGAR AHORA
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 3: CONFIRMACIÓN -->
+        <div id="step3-content" class="step-content">
+            <div class="confirmacion-pago">
+                <div class="check-animation">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2>¡PAGO EXITOSO!</h2>
+                <p>Tu compra ha sido procesada correctamente</p>
+                
+                <div class="detalle-confirmacion">
+                    <div class="confirmacion-item">
+                        <span>Código de pedido:</span>
+                        <strong>GOL-<span id="codigo-pedido"></span></strong>
+                    </div>
+                    <div class="confirmacion-item">
+                        <span>Total pagado:</span>
+                        <strong id="total-pagado">S/ 0.00</strong>
+                    </div>
+                    <div class="confirmacion-item">
+                        <span>Método de pago:</span>
+                        <strong id="metodo-pagado">Tarjeta</strong>
+                    </div>
+                    <div class="confirmacion-item">
+                        <span>Fecha:</span>
+                        <strong id="fecha-pago"></strong>
+                    </div>
+                </div>
+
+                <div class="confirmacion-mensaje">
+                    <i class="fas fa-envelope"></i>
+                    <p>Hemos enviado los detalles a tu correo electrónico</p>
+                </div>
+
+                <div class="confirmacion-actions">
+                    <button class="btn-ver-pedido" onclick="verPedido()">
+                        <i class="fas fa-box"></i> VER MI PEDIDO
+                    </button>
+                    <button class="btn-seguir-comprando" onclick="cerrarPagoModal(); mostrarTodos()">
+                        <i class="fas fa-shopping-bag"></i> SEGUIR COMPRANDO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PERFIL DE USUARIO (SIDEBAR) -->
+<!-- ============================================ -->
+<div id="user-sidebar" class="user-sidebar">
+    <div class="user-header">
+        <div class="user-avatar" id="user-avatar">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <h3 id="user-name">Invitado</h3>
+        <p id="user-email"></p>
+        <span class="close-user" onclick="toggleUserSidebar()">&times;</span>
+    </div>
+    
+    <div class="user-menu" id="user-menu-invitado">
+        <a href="#" onclick="abrirAuthModal()"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>
+        <a href="#" onclick="abrirRegistro()"><i class="fas fa-user-plus"></i> Registrarse</a>
+    </div>
+
+    <div class="user-menu" id="user-menu-registrado" style="display: none;">
+        <a href="#" onclick="verPerfil()"><i class="fas fa-user"></i> Mi Perfil</a>
+        <a href="#" onclick="verPedidos()"><i class="fas fa-box"></i> Mis Pedidos</a>
+        <a href="#" onclick="verDirecciones()"><i class="fas fa-map-marker-alt"></i> Direcciones</a>
+        <a href="#" onclick="verFavoritos()"><i class="fas fa-heart"></i> Favoritos</a>
+        <a href="#" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+    </div>
+
+    <div class="user-stats" id="user-stats" style="display: none;">
+        <div class="stat-item">
+            <span class="stat-value" id="pedidos-count">0</span>
+            <span class="stat-label">Pedidos</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="favoritos-count">0</span>
+            <span class="stat-label">Favoritos</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="puntos-value">0</span>
+            <span class="stat-label">Puntos</span>
+        </div>
+    </div>
+</div>
+
+<!-- MODIFICAR EL ICONO DE USUARIO EN EL HEADER -->
+<!-- Reemplaza el div existente del user-icon con este: -->
+<div class="user-icon" onclick="toggleUserSidebar()">
+    <i class="fas fa-user"></i>
+    <span class="user-status" id="user-status"></span>
+</div>
 
         <!-- FOOTER MODERNO -->
         <footer>

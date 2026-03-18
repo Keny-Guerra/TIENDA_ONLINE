@@ -1073,3 +1073,643 @@ document.addEventListener('click', function(e) {
 
 // Inicializar mostrando todos los productos
 mostrarTodos();
+
+// ============================================
+// VARIABLES DE USUARIO Y AUTENTICACIÓN
+// ============================================
+let usuarioActual = null;
+let usuariosRegistrados = JSON.parse(localStorage.getItem('usuarios')) || [];
+let metodoPagoSeleccionado = null;
+
+// ============================================
+// FUNCIONES DEL SIDEBAR DE USUARIO
+// ============================================
+function toggleUserSidebar() {
+    const sidebar = document.getElementById('user-sidebar');
+    sidebar.classList.toggle('active');
+}
+
+function abrirAuthModal() {
+    document.getElementById('auth-modal').style.display = 'block';
+    toggleUserSidebar(); // Cerrar sidebar
+}
+
+function abrirRegistro() {
+    cambiarTab('register');
+    document.getElementById('auth-modal').style.display = 'block';
+    toggleUserSidebar();
+}
+
+function cerrarAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+    // Limpiar formularios
+    document.getElementById('login-form').reset();
+    document.getElementById('register-form').reset();
+}
+
+// ============================================
+// CAMBIAR TABS DE LOGIN/REGISTRO
+// ============================================
+function cambiarTab(tab) {
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    
+    if (tab === 'login') {
+        loginTab.classList.add('active');
+        registerTab.classList.remove('active');
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+    } else {
+        registerTab.classList.add('active');
+        loginTab.classList.remove('active');
+        registerForm.classList.add('active');
+        loginForm.classList.remove('active');
+    }
+}
+
+// ============================================
+// FORTALEZA DE CONTRASEÑA
+// ============================================
+document.getElementById('reg-password')?.addEventListener('input', function(e) {
+    const password = e.target.value;
+    const strengthBar = document.querySelector('.strength-bar');
+    let strength = 0;
+    
+    if (password.length >= 8) strength += 25;
+    if (password.match(/[a-z]/)) strength += 25;
+    if (password.match(/[A-Z]/)) strength += 25;
+    if (password.match(/[0-9]/)) strength += 15;
+    if (password.match(/[^a-zA-Z0-9]/)) strength += 10;
+    
+    strengthBar.style.width = strength + '%';
+    
+    if (strength < 30) {
+        strengthBar.style.background = '#dc3545';
+    } else if (strength < 60) {
+        strengthBar.style.background = '#ffc107';
+    } else {
+        strengthBar.style.background = '#28a745';
+    }
+});
+
+// ============================================
+// MOSTRAR/OCULTAR CONTRASEÑA
+// ============================================
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const type = input.type === 'password' ? 'text' : 'password';
+    input.type = type;
+}
+
+// ============================================
+// REGISTRO DE USUARIO - VERSIÓN MEJORADA
+// ============================================
+function registrarUsuario() {
+    // Obtener valores del formulario
+    const nombres = document.getElementById('reg-nombres')?.value.trim();
+    const apellidos = document.getElementById('reg-apellidos')?.value.trim();
+    const email = document.getElementById('reg-email')?.value.trim();
+    const telefono = document.getElementById('reg-telefono')?.value.trim();
+    const password = document.getElementById('reg-password')?.value;
+    const confirmPassword = document.getElementById('reg-confirm-password')?.value;
+    const acceptTerms = document.getElementById('accept-terms')?.checked;
+    
+    // Validar que todos los campos existan
+    if (!nombres || !apellidos || !email || !telefono || !password || !confirmPassword) {
+        mostrarNotificacion('❌ Todos los campos son obligatorios', 'error');
+        return;
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        mostrarNotificacion('❌ Ingresa un email válido', 'error');
+        document.getElementById('reg-email').focus();
+        return;
+    }
+    
+    // Validar teléfono (solo números, mínimo 9 dígitos)
+    const telefonoRegex = /^\d{9,}$/;
+    if (!telefonoRegex.test(telefono.replace(/\s/g, ''))) {
+        mostrarNotificacion('❌ Ingresa un teléfono válido (9 dígitos)', 'error');
+        document.getElementById('reg-telefono').focus();
+        return;
+    }
+    
+    // Validar longitud de contraseña
+    if (password.length < 8) {
+        mostrarNotificacion('❌ La contraseña debe tener al menos 8 caracteres', 'error');
+        document.getElementById('reg-password').focus();
+        return;
+    }
+    
+    // Validar que las contraseñas coincidan
+    if (password !== confirmPassword) {
+        mostrarNotificacion('❌ Las contraseñas no coinciden', 'error');
+        document.getElementById('reg-confirm-password').focus();
+        return;
+    }
+    
+    // Validar términos y condiciones
+    if (!acceptTerms) {
+        mostrarNotificacion('❌ Debes aceptar los términos y condiciones', 'error');
+        return;
+    }
+    
+    // Verificar si el email ya está registrado
+    const usuariosRegistrados = JSON.parse(localStorage.getItem('usuarios')) || [];
+    if (usuariosRegistrados.find(u => u.email === email)) {
+        mostrarNotificacion('❌ Este email ya está registrado', 'error');
+        return;
+    }
+    
+    // Mostrar estado de carga en el botón
+    const btn = document.getElementById('register-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CREANDO CUENTA...';
+    btn.disabled = true;
+    btn.classList.add('procesando');
+    
+    // Simular tiempo de procesamiento
+    setTimeout(() => {
+        // Crear nuevo usuario
+        const nuevoUsuario = {
+            id: Date.now(),
+            nombres,
+            apellidos,
+            email,
+            telefono: telefono.replace(/\s/g, ''),
+            password, // En producción, esto debería estar encriptado
+            fechaRegistro: new Date().toISOString(),
+            pedidos: [],
+            favoritos: [],
+            direcciones: []
+        };
+        
+        // Guardar en localStorage
+        usuariosRegistrados.push(nuevoUsuario);
+        localStorage.setItem('usuarios', JSON.stringify(usuariosRegistrados));
+        
+        // Iniciar sesión automáticamente
+        usuarioActual = nuevoUsuario;
+        actualizarUIUsuario();
+        
+        // Restaurar botón
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        btn.classList.remove('procesando');
+        
+        // Mostrar mensaje de éxito
+        mostrarNotificacion('✅ ¡Registro exitoso! Bienvenido ' + nombres, 'success');
+        
+        // Cerrar modal
+        cerrarAuthModal();
+        
+        // Limpiar formulario
+        document.getElementById('register-form-element')?.reset();
+        
+        // Actualizar el contador de usuarios (opcional)
+        console.log('Usuarios registrados:', usuariosRegistrados.length);
+        
+    }, 1500); // Simular 1.5 segundos de procesamiento
+}
+
+// ============================================
+// FUNCIÓN PARA LIMPIAR EL FORMULARIO
+// ============================================
+function limpiarFormularioRegistro() {
+    document.getElementById('reg-nombres').value = '';
+    document.getElementById('reg-apellidos').value = '';
+    document.getElementById('reg-email').value = '';
+    document.getElementById('reg-telefono').value = '';
+    document.getElementById('reg-password').value = '';
+    document.getElementById('reg-confirm-password').value = '';
+    document.getElementById('accept-terms').checked = false;
+    
+    // Limpiar barra de fortaleza
+    const strengthBar = document.querySelector('.strength-bar');
+    if (strengthBar) {
+        strengthBar.style.width = '0';
+    }
+}
+
+// ============================================
+// MEJORAR LA FUNCIÓN DE CAMBIO DE TABS
+// ============================================
+function cambiarTab(tab) {
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    
+    if (tab === 'login') {
+        loginTab.classList.add('active');
+        registerTab.classList.remove('active');
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+        
+        // Limpiar formulario de registro al cambiar
+        limpiarFormularioRegistro();
+    } else {
+        registerTab.classList.add('active');
+        loginTab.classList.remove('active');
+        registerForm.classList.add('active');
+        loginForm.classList.remove('active');
+        
+        // Limpiar formulario de login al cambiar
+        document.getElementById('login-email').value = '';
+        document.getElementById('login-password').value = '';
+    }
+}
+
+// ============================================
+// VALIDACIÓN EN TIEMPO REAL
+// ============================================
+// Validar email mientras se escribe
+document.getElementById('reg-email')?.addEventListener('input', function(e) {
+    const email = e.target.value;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (email && !emailRegex.test(email)) {
+        e.target.style.borderColor = '#dc3545';
+    } else if (email && emailRegex.test(email)) {
+        e.target.style.borderColor = '#28a745';
+    } else {
+        e.target.style.borderColor = 'var(--azul-claro)';
+    }
+});
+
+// Validar teléfono mientras se escribe
+document.getElementById('reg-telefono')?.addEventListener('input', function(e) {
+    let telefono = e.target.value.replace(/\D/g, '');
+    if (telefono.length > 9) telefono = telefono.slice(0, 9);
+    
+    // Formatear como número de teléfono
+    if (telefono.length > 6) {
+        telefono = telefono.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+    } else if (telefono.length > 3) {
+        telefono = telefono.replace(/(\d{3})(\d+)/, '$1 $2');
+    }
+    
+    e.target.value = telefono;
+    
+    if (telefono.replace(/\s/g, '').length === 9) {
+        e.target.style.borderColor = '#28a745';
+    } else if (telefono) {
+        e.target.style.borderColor = '#dc3545';
+    } else {
+        e.target.style.borderColor = 'var(--azul-claro)';
+    }
+});
+
+// ============================================
+// INICIAR SESIÓN
+// ============================================
+function iniciarSesion() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    if (!email || !password) {
+        mostrarNotificacion('Ingresa tu email y contraseña', 'error');
+        return;
+    }
+    
+    const usuario = usuariosRegistrados.find(u => u.email === email && u.password === password);
+    
+    if (usuario) {
+        usuarioActual = usuario;
+        actualizarUIUsuario();
+        mostrarNotificacion('¡Bienvenido ' + usuario.nombres + '!');
+        cerrarAuthModal();
+    } else {
+        mostrarNotificacion('Email o contraseña incorrectos', 'error');
+        document.getElementById('login-password').style.borderColor = '#dc3545';
+        document.getElementById('login-password').style.animation = 'shake 0.3s';
+        setTimeout(() => {
+            document.getElementById('login-password').style.animation = '';
+        }, 300);
+    }
+}
+
+// ============================================
+// CERRAR SESIÓN
+// ============================================
+function cerrarSesion() {
+    usuarioActual = null;
+    actualizarUIUsuario();
+    mostrarNotificacion('Sesión cerrada');
+    toggleUserSidebar();
+}
+
+// ============================================
+// ACTUALIZAR INTERFAZ SEGÚN USUARIO
+// ============================================
+function actualizarUIUsuario() {
+    const userStatus = document.getElementById('user-status');
+    const userMenuInvitado = document.getElementById('user-menu-invitado');
+    const userMenuRegistrado = document.getElementById('user-menu-registrado');
+    const userStats = document.getElementById('user-stats');
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    
+    if (usuarioActual) {
+        // Usuario logueado
+        userStatus.classList.add('logged-in');
+        userMenuInvitado.style.display = 'none';
+        userMenuRegistrado.style.display = 'flex';
+        userStats.style.display = 'grid';
+        
+        userName.textContent = usuarioActual.nombres + ' ' + usuarioActual.apellidos;
+        userEmail.textContent = usuarioActual.email;
+        
+        // Actualizar estadísticas
+        document.getElementById('pedidos-count').textContent = usuarioActual.pedidos.length;
+        document.getElementById('favoritos-count').textContent = usuarioActual.favoritos.length;
+        document.getElementById('puntos-value').textContent = Math.floor(usuarioActual.pedidos.length * 100);
+    } else {
+        // Invitado
+        userStatus.classList.remove('logged-in');
+        userMenuInvitado.style.display = 'flex';
+        userMenuRegistrado.style.display = 'none';
+        userStats.style.display = 'none';
+        
+        userName.textContent = 'Invitado';
+        userEmail.textContent = '';
+    }
+}
+
+// ============================================
+// FUNCIONES DE PAGO
+// ============================================
+function abrirPagoModal() {
+    if (carrito.length === 0) {
+        mostrarNotificacion('El carrito está vacío', 'error');
+        return;
+    }
+    
+    // Actualizar resumen de compra
+    actualizarResumenCompra();
+    
+    // Resetear progreso
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('step2').classList.remove('active', 'completed');
+    document.getElementById('step3').classList.remove('active', 'completed');
+    
+    document.getElementById('step1-content').classList.add('active');
+    document.getElementById('step2-content').classList.remove('active');
+    document.getElementById('step3-content').classList.remove('active');
+    
+    document.getElementById('pago-modal').style.display = 'block';
+    toggleCart(); // Cerrar carrito
+}
+
+function actualizarResumenCompra() {
+    const resumenItems = document.getElementById('resumen-items');
+    const subtotal = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    const envio = 15.00;
+    const total = subtotal + envio;
+    
+    resumenItems.innerHTML = '';
+    
+    carrito.forEach(item => {
+        const itemHTML = `
+            <div class="resumen-item">
+                <img src="${item.imagen}" alt="${item.nombre}" class="resumen-item-img">
+                <div class="resumen-item-info">
+                    <h4>${item.nombre}</h4>
+                    <p>Cantidad: ${item.cantidad}</p>
+                </div>
+                <div class="resumen-item-precio">S/ ${(item.precio * item.cantidad).toFixed(2)}</div>
+            </div>
+        `;
+        resumenItems.innerHTML += itemHTML;
+    });
+    
+    document.getElementById('resumen-subtotal').textContent = `S/ ${subtotal.toFixed(2)}`;
+    document.getElementById('resumen-envio').textContent = `S/ ${envio.toFixed(2)}`;
+    document.getElementById('resumen-total').textContent = `S/ ${total.toFixed(2)}`;
+}
+
+function irAPaso2() {
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step1').classList.add('completed');
+    document.getElementById('step2').classList.add('active');
+    
+    document.getElementById('step1-content').classList.remove('active');
+    document.getElementById('step2-content').classList.add('active');
+    
+    // Scroll al inicio del modal
+    document.querySelector('.pago-modal-content').scrollTop = 0;
+}
+
+function volverAPaso1() {
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('step1').classList.remove('completed');
+    
+    document.getElementById('step2-content').classList.remove('active');
+    document.getElementById('step1-content').classList.add('active');
+}
+
+function seleccionarMetodo(metodo) {
+    metodoPagoSeleccionado = metodo;
+    
+    // Remover selección anterior
+    document.querySelectorAll('.metodo-pago-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Ocultar todos los formularios
+    document.querySelectorAll('.metodo-form').forEach(form => {
+        form.style.display = 'none';
+    });
+    
+    // Seleccionar el método actual
+    event.currentTarget.classList.add('selected');
+    
+    // Mostrar formulario correspondiente
+    const formId = metodo + '-form';
+    const form = document.getElementById(formId);
+    if (form) {
+        form.style.display = 'block';
+    }
+}
+
+function formatearTarjeta(input) {
+    let value = input.value.replace(/\D/g, '');
+    value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+    input.value = value;
+}
+
+function procesarPago() {
+    if (!metodoPagoSeleccionado) {
+        mostrarNotificacion('Selecciona un método de pago', 'error');
+        return;
+    }
+    
+    // Simular procesamiento de pago
+    mostrarNotificacion('Procesando pago...');
+    
+    setTimeout(() => {
+        // Generar código de pedido
+        const codigoPedido = Math.floor(100000 + Math.random() * 900000);
+        
+        // Actualizar paso 3
+        document.getElementById('codigo-pedido').textContent = codigoPedido;
+        document.getElementById('total-pagado').textContent = document.getElementById('resumen-total').textContent;
+        
+        let metodoTexto = '';
+        switch(metodoPagoSeleccionado) {
+            case 'tarjeta': metodoTexto = 'Tarjeta de Crédito/Débito'; break;
+            case 'yape': metodoTexto = 'Yape'; break;
+            case 'plin': metodoTexto = 'Plin'; break;
+            case 'transferencia': metodoTexto = 'Transferencia Bancaria'; break;
+            case 'efectivo': metodoTexto = 'Efectivo (Contra entrega)'; break;
+        }
+        document.getElementById('metodo-pagado').textContent = metodoTexto;
+        
+        const fecha = new Date();
+        document.getElementById('fecha-pago').textContent = fecha.toLocaleDateString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Actualizar progreso
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step2').classList.add('completed');
+        document.getElementById('step3').classList.add('active');
+        
+        document.getElementById('step2-content').classList.remove('active');
+        document.getElementById('step3-content').classList.add('active');
+        
+        // Guardar pedido en historial del usuario
+        if (usuarioActual) {
+            const pedido = {
+                codigo: codigoPedido,
+                fecha: new Date().toISOString(),
+                items: [...carrito],
+                total: parseFloat(document.getElementById('resumen-total').textContent.replace('S/ ', '')),
+                metodoPago: metodoTexto,
+                estado: 'Confirmado'
+            };
+            usuarioActual.pedidos.push(pedido);
+            localStorage.setItem('usuarios', JSON.stringify(usuariosRegistrados));
+        }
+        
+        // Vaciar carrito
+        carrito = [];
+        actualizarCarrito();
+        
+        // Animación de éxito
+        document.querySelector('.check-animation i').style.animation = 'pulse 0.5s';
+        
+        mostrarNotificacion('¡Pago exitoso! Código: GOL-' + codigoPedido);
+    }, 2000);
+}
+
+function cerrarPagoModal() {
+    document.getElementById('pago-modal').style.display = 'none';
+    metodoPagoSeleccionado = null;
+}
+
+// ============================================
+// FUNCIONES DE PERFIL DE USUARIO
+// ============================================
+function verPerfil() {
+    mostrarNotificacion('Funcionalidad de perfil en desarrollo');
+    toggleUserSidebar();
+}
+
+function verPedidos() {
+    if (usuarioActual && usuarioActual.pedidos.length > 0) {
+        let mensaje = 'Tus pedidos:\n';
+        usuarioActual.pedidos.forEach(p => {
+            mensaje += `GOL-${p.codigo} - ${p.fecha.split('T')[0]} - S/ ${p.total}\n`;
+        });
+        alert(mensaje);
+    } else {
+        mostrarNotificacion('No tienes pedidos aún', 'error');
+    }
+    toggleUserSidebar();
+}
+
+function verDirecciones() {
+    mostrarNotificacion('Funcionalidad de direcciones en desarrollo');
+    toggleUserSidebar();
+}
+
+function verFavoritos() {
+    mostrarNotificacion('Funcionalidad de favoritos en desarrollo');
+    toggleUserSidebar();
+}
+
+function socialLogin(red) {
+    mostrarNotificacion(`Iniciando sesión con ${red}... (Demo)`);
+    
+    // Simulación de login social
+    setTimeout(() => {
+        const usuarioDemo = {
+            id: Date.now(),
+            nombres: red === 'google' ? 'Usuario' : 'Facebook User',
+            apellidos: red,
+            email: `usuario@${red}.com`,
+            telefono: '999999999',
+            password: 'social',
+            fechaRegistro: new Date().toISOString(),
+            pedidos: [],
+            favoritos: [],
+            direcciones: []
+        };
+        
+        usuarioActual = usuarioDemo;
+        actualizarUIUsuario();
+        mostrarNotificacion(`¡Bienvenido ${usuarioDemo.nombres}!`);
+        cerrarAuthModal();
+    }, 1000);
+}
+
+function recuperarContrasena() {
+    const email = prompt('Ingresa tu email para recuperar contraseña:');
+    if (email) {
+        mostrarNotificacion('Se ha enviado un enlace a ' + email);
+    }
+}
+
+function mostrarTerminos() {
+    alert('TÉRMINOS Y CONDICIONES\n\n1. Los productos son 100% originales\n2. Las devoluciones se aceptan hasta 7 días después de la compra\n3. Los precios incluyen IGV');
+}
+
+function mostrarPrivacidad() {
+    alert('POLÍTICA DE PRIVACIDAD\n\nTus datos están seguros con nosotros. No compartimos información con terceros.');
+}
+
+// ============================================
+// MODIFICAR FUNCIÓN EXISTENTE DE COMPRA
+// ============================================
+// Reemplazar la función procesarCompra() anterior con esta:
+function procesarCompra() {
+    if (!usuarioActual) {
+        mostrarNotificacion('Debes iniciar sesión para comprar', 'error');
+        toggleCart();
+        abrirAuthModal();
+        return;
+    }
+    
+    abrirPagoModal();
+}
+
+// ============================================
+// INICIALIZAR
+// ============================================
+// Verificar si hay usuario en localStorage al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    // Comprobar si hay un usuario guardado (para demo)
+    if (usuariosRegistrados.length > 0) {
+        // No iniciar sesión automáticamente, solo tenerlos disponibles
+    }
+});
