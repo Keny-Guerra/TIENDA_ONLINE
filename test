@@ -1,0 +1,32 @@
+// Ollama devuelve la respuesta en $json.response
+const text = $json.response;
+
+// Extraer JSON de la respuesta (puede tener markdown)
+let jsonText = text;
+if (text.includes('```json')) {
+  jsonText = text.split('```json')[1].split('```')[0];
+} else if (text.includes('{')) {
+  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+}
+
+try {
+  const parsed = JSON.parse(jsonText.trim());
+  return {
+    proveedor_recomendado: parsed.proveedor_recomendado || 1,
+    razon: parsed.razon || "Recomendación de Ollama",
+    confianza: parsed.confianza || 50,
+    solicitud_id: $json.id,
+    cantidad_requerida: $json.cantidad_requerida,
+    stock_bajo_producto_id: $json.stock_bajo_producto_id
+  };
+} catch (e) {
+  return {
+    proveedor_recomendado: 1,
+    razon: "Error parsing, default proveedor",
+    confianza: 0,
+    solicitud_id: $json.id,
+    cantidad_requerida: $json.cantidad_requerida,
+    stock_bajo_producto_id: $json.stock_bajo_producto_id
+  };
+}
+

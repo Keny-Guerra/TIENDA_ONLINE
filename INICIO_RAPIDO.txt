@@ -1,0 +1,162 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  🛍️  TIENDA ONLINE - INICIO RÁPIDO                          ║
+║                                                                              ║
+║                     ✅ MIGRACIÓN A MYSQL COMPLETADA                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📦 ARCHIVOS NUEVOS CREADOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BACKEND (Node.js):
+  ✅ server.js              - API Express REST
+  ✅ package.json           - Dependencias Node
+  ✅ .env                   - Variables de entorno
+  ✅ database.sql           - Script SQL con BD y datos
+
+FRONTEND (Actualizado):
+  ✅ script-new.js          - JavaScript adaptado para API
+  
+DOCUMENTACIÓN:
+  ✅ README.md              - Documentación principal
+  ✅ SETUP.md               - Guía de instalación por SO
+  ✅ PROYECTO.md            - Resumen del proyecto
+  ✅ INICIO_RAPIDO.txt      - Este archivo
+
+CONFIGURACIÓN:
+  ✅ .gitignore             - Archivos a ignorar
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 PASOS PARA EMPEZAR (5 MINUTOS):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  INSTALAR DEPENDENCIAS
+   
+   npm install
+
+   (Instala: express, mysql2, cors, dotenv)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2️⃣  CREAR LA BD MYSQL
+
+   mysql -u root -p < database.sql
+
+   (Crea la BD, tablas e inserta 6 productos de ejemplo)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3️⃣  CONFIGURAR .env
+
+   Edita el archivo .env y coloca tu contraseña MySQL:
+   
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=tu_contraseña_aqui   ← AQUÍ
+   DB_NAME=tienda_online
+   PORT=3000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4️⃣  INICIAR SERVIDOR
+
+   npm start
+
+   Deberías ver:
+   ✅ Servidor corriendo en http://localhost:3000
+   📊 API disponible en http://localhost:3000/api/productos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5️⃣  CAMBIAR SCRIPT EN HTML
+
+   En index.html, busca:
+   <script src="script.js"></script>
+
+   Y reemplaza por:
+   <script src="script-new.js"></script>
+
+   O en terminal:
+   mv script.js script-old.js
+   mv script-new.js script.js
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6️⃣  ABRIR EN NAVEGADOR
+
+   http://localhost:3000
+
+   ✨ ¡La tienda debería cargarse con productos de MySQL!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 VERIFICAR QUE FUNCIONA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ API responde:
+   curl http://localhost:3000/api/productos
+   (o simplemente abre en navegador)
+
+✅ Tienda funciona:
+   http://localhost:3000
+   - Ver todos los productos
+   - Buscar productos
+   - Filtrar por deporte
+   - Agregar al carrito
+   - Pagar
+
+✅ BD contiene datos:
+   mysql -u root -p tienda_online
+   SELECT COUNT(*) FROM productos;
+   (Deberías ver 6 productos)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTACIÓN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Léeindividualmente para más detalles sobre:
+
+📖 README.md   - Documentación completa y endpoints API
+🔧 SETUP.md    - Instalación por Sistema Operativo
+📋 PROYECTO.md - Resumen del proyecto y próximas mejoras
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  REQUISITOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Node.js instalado     (npm --version)
+✅ MySQL instalado       (mysql --version)
+✅ MySQL ejecutándose    (en Windows: Services)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PRÓXIMAS FASES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fase 2: CRUD Completo (Crear, Leer, Actualizar, Eliminar productos)
+Fase 3: Carrito Persistente en BD
+Fase 4: Sistema de Pedidos
+Fase 5: Panel de Administrador
+
+Ver detalles en: PROYECTO.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIPS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- NO cierres la terminal donde está corriendo el servidor
+- Para desarrollo: npm install -g nodemon && nodemon server.js
+- Abre consola del navegador (F12) para ver errores
+- Revisa SETUP.md si hay problemas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ ¡LISTO! Ejecuta: npm start
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║               Fecha: Mayo 2024 | Stack: Node + Express + MySQL              ║
+║                         Status: ✅ FUNCIONAL                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
