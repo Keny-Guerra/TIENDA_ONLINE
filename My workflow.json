@@ -1,0 +1,201 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/solicitud-compra",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3d55ab72-53ee-4954-bcf6-2af435ca57f0",
+      "name": "Webhook",
+      "webhookId": "13896297-d080-456c-9456-081b0e087aea"
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        112
+      ],
+      "id": "f01a5a43-c508-4891-88a9-298eb0b24fb7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"smollm2:1.7b\",\n  \"prompt\": \"Eres un experto en compras. Analiza esta solicitud:\\nProducto ID: {{$json.stock_bajo_producto_id}}\\nCantidad: {{$json.cantidad_requerida}}\\nDescripción: {{$json.descripcion    }}\\n\\nRecomienda el mejor proveedor (1-5) basado en precio y tiempo de entrega.\\nResponde SOLO JSON válido sin markdown, sin comillas extras:\\n{\\\"proveedor_recomendado\\\": X, \\\"razon\\\":     \\\"Por qué lo elegiste\\\", \\\"confianza\\\": 85}\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.1\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        -160
+      ],
+      "id": "3245ff4b-4922-4100-8ca9-6a026d72cc4c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/solicitudes-compra/generar-orden",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "solicitud_id",
+              "value": "={{$json.id}}"
+            },
+            {
+              "name": "proveedor_id",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "5f5184e8-23c1-4b10-ac1a-3ad7b8254ed4",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        144
+      ],
+      "id": "f9706198-b58d-482d-8a0e-e17937a489fc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n    ...($json?.body || {}),\n    ...$json\n  }];\n\nreturn {\n    solicitud_id: $json.solicitud_id,\n    proveedor_id: $json.proveedor_recomendado  // renombrar aquí\n  };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        144
+      ],
+      "id": "8aa75360-fc61-4af4-b813-1c74298c7f3e",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "be4c540a-b657-4ad2-bfe6-e95cd925ff20",
+  "meta": {
+    "instanceId": "84c2179a699d56eea41577882b1eec6015616bf36ff6c4dc4140a1787e1b3c6c"
+  },
+  "id": "so6qIuB0QIopeBHd",
+  "tags": []
+}

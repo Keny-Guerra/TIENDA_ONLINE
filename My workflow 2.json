@@ -1,0 +1,117 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/solicitud-compra",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a01b47ce-e6d7-493e-8ab4-74c86c9cc4b3",
+      "name": "Webhook",
+      "webhookId": "a19b8c74-896b-4920-8b32-a4ded6f4e9ec"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ebbac58-0328-4ef3-8b73-2b5146bcf194",
+              "name": "solcitud_id",
+              "value": "={{ $json.body.solicitud_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b8ebe152-2410-4abc-98e5-bf08ecc6d355",
+              "name": "description",
+              "value": "={{ $json.body.descripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "468d6329-fc73-46ee-8f53-a1bfccdca571",
+              "name": "catindad_requerida",
+              "value": "={{ $json.body.cantidad_requerida }}",
+              "type": "string"
+            },
+            {
+              "id": "2072d071-39b6-4591-b4e2-d2f0238a5649",
+              "name": "stock_bajo_producto_id",
+              "value": "={{ $json.body.stock_bajo_producto_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "18fb6a34-1132-41f1-8b19-96f21c3f7593",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={                                                    \"model\": \"smollm2:1.7b\",                         \"prompt\": \"Eres un experto en compras. Analiza esta solicitud y extrae los datos.\\n\\nSOLICITUD:\\nDescripcion: {{ $json.descripcion }}\\nCantidad: {{ $json.cantidad_requerida }}\\nProducto\n   ID: {{ $json.stock_bajo_producto_id }}\\n\\nExtrae estos campos y responde SOLO JSON sin markdown:\\n{\\\"producto_nombre\\\": \\\"...\\\", \\\"cantidad\\\": 0, \\\"urgencia\\\": \\\"alta|media|baja\\\",      \n  \\\"comentarios\\\": \\\"...\\\"}\",                                                                                                                                                                \n    \"stream\": false,                                                                                                                                                                         \n    \"options\": { \"temperature\": 0.1 }                                                                                                                                                        \n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f77ca921-d07c-493b-9f3a-bd53d876028a",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9c6694c2-de85-4c60-8d2c-3b7d25d47c79",
+  "meta": {
+    "instanceId": "84c2179a699d56eea41577882b1eec6015616bf36ff6c4dc4140a1787e1b3c6c"
+  },
+  "id": "x303PaWrXKM4YGXJ",
+  "tags": []
+}
