@@ -270,7 +270,7 @@ El backend consulta la BD y envía los datos relevantes al webhook de n8n en for
 }
 ```
 
-Los datos de proveedores y sus características están hardcodeados en los prompts de n8n para que el LLM los use sin necesidad de consultar la BD en tiempo real.
+El backend consulta la BD en tiempo real antes de disparar cada webhook y construye el texto de proveedores dinámicamente con `buildProveedoresTexto()`. Este texto llega a n8n como campo `proveedores_texto` en el payload, y los prompts lo inyectan con `{{ $json.proveedores_texto }}`. Si se agrega un nuevo proveedor en la BD, el LLM lo considera automáticamente en la siguiente solicitud sin modificar los workflows.
 
 ---
 

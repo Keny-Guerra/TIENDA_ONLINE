@@ -19,8 +19,9 @@
       "parameters": {
         "values": {
           "string": [
-            { "name": "tipo",    "value": "={{ $json.body.tipo }}" },
-            { "name": "mensaje", "value": "={{ $json.body.mensaje }}" }
+            { "name": "tipo",              "value": "={{ $json.body.tipo }}" },
+            { "name": "mensaje",           "value": "={{ $json.body.mensaje }}" },
+            { "name": "proveedores_texto", "value": "={{ $json.body.proveedores_texto }}" }
           ]
         },
         "options": {}
@@ -123,7 +124,7 @@
         "url": "http://127.0.0.1:11434/api/generate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en seleccion de proveedores para una tienda deportiva.\\n\\nProveedores disponibles:\\n1. TextilPeru S.A. (Lima) - precio bajo, entrega 3-5 dias\\n2. SportGear China (Shanghai) - precio medio, entrega 5-7 dias\\n3. Confecciones Brasil (Sao Paulo) - precio medio, entrega 4-6 dias\\n4. Adidas Direct (Lima) - precio alto, entrega 2-3 dias\\n5. Nike Distribution (Lima) - precio alto, entrega 1-2 dias\\n\\nRegla de decision:\\n- Urgencia alta o critica: priorizar velocidad de entrega\\n- Urgencia media o baja: priorizar precio mas bajo\\n\\nResponde en español con este formato exacto, sin texto adicional:\\nProveedor recomendado: [nombre]\\nRazon: [una frase explicando por que]\\nTiempo de entrega: [X a Y dias]\\nConfianza: [número]%\\n\\nConsulta: {{ $json.mensaje }}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en seleccion de proveedores para una tienda deportiva.\\n\\nProveedores disponibles (datos en tiempo real de la BD):\\n{{ $json.proveedores_texto }}\\n\\nRegla de decision:\\n- Urgencia alta o critica: priorizar velocidad de entrega\\n- Urgencia media o baja: priorizar precio mas bajo\\n\\nResponde en español con este formato exacto, sin texto adicional:\\nProveedor recomendado: [nombre]\\nRazon: [una frase explicando por que]\\nTiempo de entrega: [X a Y dias]\\nConfianza: [número]%\\n\\nConsulta: {{ $json.mensaje }}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",

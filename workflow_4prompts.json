@@ -42,6 +42,12 @@
               "name": "stock_bajo_producto_id",
               "value": "={{ $json.body.stock_bajo_producto_id }}",
               "type": "number"
+            },
+            {
+              "id": "ef005",
+              "name": "proveedores_texto",
+              "value": "={{ $json.body.proveedores_texto }}",
+              "type": "string"
             }
           ]
         },
@@ -109,7 +115,7 @@
         "url": "http://127.0.0.1:11434/api/generate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en seleccion de proveedores. Elige el mejor para esta solicitud.\\n\\nSOLICITUD:\\nProducto: {{ $json.producto_nombre }}\\nCantidad: {{ $json.cantidad }}\\nUrgencia: {{ $json.urgencia }}\\n\\nPROVEEDORES:\\n1. TextilPeru S.A. - precio bajo, entrega 3-5 dias\\n2. SportGear China - precio medio, entrega 5-7 dias\\n3. Confecciones Brasil - precio medio, entrega 4-6 dias\\n4. Adidas Direct - precio alto, entrega 2-3 dias\\n5. Nike Distribution - precio alto, entrega 1-2 dias\\n\\nRegla: urgencia critica o alta = prioriza entrega rapida. urgencia baja = prioriza precio.\\n\\nResponde SOLO JSON sin markdown:\\n{\\\"proveedor_recomendado\\\": 1, \\\"razon\\\": \\\"...\\\", \\\"confianza\\\": 85}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en seleccion de proveedores. Elige el mejor para esta solicitud.\\n\\nSOLICITUD:\\nProducto: {{ $json.producto_nombre }}\\nCantidad: {{ $json.cantidad }}\\nUrgencia: {{ $json.urgencia }}\\n\\nPROVEEDORES DISPONIBLES (datos en tiempo real de la BD):\\n{{ $json.proveedores_texto }}\\n\\nRegla: urgencia critica o alta = prioriza entrega rapida. urgencia baja = prioriza precio.\\n\\nResponde SOLO JSON sin markdown indicando el NUMERO del proveedor elegido (1, 2, 3...):\\n{\\\"proveedor_recomendado\\\": 1, \\\"razon\\\": \\\"...\\\", \\\"confianza\\\": 85}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",

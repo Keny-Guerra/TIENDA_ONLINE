@@ -33,6 +33,27 @@ const OLLAMA_HOST = 'http://localhost:11434';
 const OLLAMA_MODEL = 'qwen2.5:3b';
 
 // Helper: Llamar a Ollama para interpretación con IA
+async function buildProveedoresTexto(connection) {
+  const [provs] = await connection.query(`
+    SELECT p.id, p.nombre, p.ciudad,
+           ROUND(AVG(pr.precio_venta), 2) as precio_avg,
+           MIN(e.dias_minimos) as dias_min,
+           MIN(e.dias_maximos) as dias_max
+    FROM proveedores p
+    LEFT JOIN precios pr ON p.id = pr.proveedor_id AND pr.activo = TRUE
+    LEFT JOIN entregas e ON p.id = e.proveedor_id AND e.disponible = TRUE
+    WHERE p.activo = TRUE
+    GROUP BY p.id, p.nombre, p.ciudad
+    ORDER BY p.id
+  `);
+  return provs.map((p, i) => {
+    const precio = parseFloat(p.precio_avg) || 0;
+    const nivel = precio < 100 ? 'precio bajo' : precio < 200 ? 'precio medio' : 'precio alto';
+    const entrega = p.dias_min && p.dias_max ? `${p.dias_min}-${p.dias_max} dias` : 'consultar';
+    return `${i + 1}. ${p.nombre} (${p.ciudad}) - ${nivel}, entrega ${entrega}`;
+  }).join(' | ');
+}
+
 async function callOllama(systemPrompt, userPrompt, format = null) {
   try {
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
@@ -1328,13 +1349,14 @@ app.post('/api/chatbot', async (req, res) => {
         [usuario_id, descripcion, productoMatch.id, cantidad, 'pendiente']
       );
       const solicitud_id = result.insertId;
+      const proveedoresTexto = await buildProveedoresTexto(connection);
       connection.release();
 
       try {
         await fetch('http://localhost:5678/webhook/solicitud-compra', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ solicitud_id, descripcion, cantidad_requerida: cantidad, stock_bajo_producto_id: productoMatch.id }),
+          body: JSON.stringify({ solicitud_id, descripcion, cantidad_requerida: cantidad, stock_bajo_producto_id: productoMatch.id, proveedores_texto: proveedoresTexto }),
           signal: AbortSignal.timeout(10000)
         });
       } catch (e) {
@@ -1350,11 +1372,12 @@ app.post('/api/chatbot', async (req, res) => {
 
     // ── PASOS 1-3: n8n orquesta (interpretar / clasificar / recomendar) ──────
     if (tipo === 'interpretar' || tipo === 'clasificar' || tipo === 'recomendar') {
+      const proveedoresTexto = tipo === 'recomendar' ? await buildProveedoresTexto(connection) : '';
       connection.release();
       const n8nResp = await fetch('http://localhost:5678/webhook/chatbot-consulta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo, mensaje }),
+        body: JSON.stringify({ tipo, mensaje, proveedores_texto: proveedoresTexto }),
         signal: AbortSignal.timeout(60000)
       });
       const data = await n8nResp.json();
