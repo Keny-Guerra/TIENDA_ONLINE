@@ -1,0 +1,226 @@
+{
+  "name": "Golazo Store - 4 Prompts LLM",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "solicitud-compra",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "a01b47ce-e6d7-493e-8ab4-74c86c9cc4b3",
+      "name": "Webhook",
+      "webhookId": "cc112233-4455-6677-8899-aabbccddeeff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef001",
+              "name": "solicitud_id",
+              "value": "={{ $json.body.solicitud_id }}",
+              "type": "number"
+            },
+            {
+              "id": "ef002",
+              "name": "descripcion",
+              "value": "={{ $json.body.descripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "ef003",
+              "name": "cantidad_requerida",
+              "value": "={{ $json.body.cantidad_requerida }}",
+              "type": "number"
+            },
+            {
+              "id": "ef004",
+              "name": "stock_bajo_producto_id",
+              "value": "={{ $json.body.stock_bajo_producto_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0],
+      "id": "b1111111-1111-1111-1111-111111111111",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en compras. Analiza esta solicitud y extrae los datos.\\n\\nSOLICITUD:\\nDescripcion: {{ $json.descripcion }}\\nCantidad: {{ $json.cantidad_requerida }}\\nProducto ID: {{ $json.stock_bajo_producto_id }}\\n\\nExtrae estos campos y responde SOLO JSON sin markdown:\\n{\\\"producto_nombre\\\": \\\"...\\\", \\\"cantidad\\\": 0, \\\"urgencia\\\": \\\"alta|media|baja\\\", \\\"comentarios\\\": \\\"...\\\"}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [440, 0],
+      "id": "c2222222-2222-2222-2222-222222222222",
+      "name": "Ollama Prompt 1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.response;\nconst prev = $('Edit Fields').first().json;\n\nlet jsonText = text;\nif (text.includes('```json')) {\n  jsonText = text.split('```json')[1].split('```')[0];\n} else if (text.includes('{')) {\n  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);\n}\n\ntry {\n  const parsed = JSON.parse(jsonText.trim());\n  return [{ json: { ...prev, ...parsed } }];\n} catch (e) {\n  return [{ json: { ...prev, producto_nombre: 'Desconocido', cantidad: parseInt(prev.cantidad_requerida) || 1, urgencia: 'media', comentarios: '' } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "id": "d3333333-3333-3333-3333-333333333333",
+      "name": "Code Parse 1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Clasifica esta solicitud de compra.\\n\\nSOLICITUD:\\nDescripcion: {{ $json.descripcion }}\\nProducto: {{ $json.producto_nombre }}\\nCantidad: {{ $json.cantidad }}\\n\\nResponde SOLO JSON sin markdown:\\n{\\\"tipo\\\": \\\"reposicion_stock|emergencia|planificada\\\", \\\"urgencia\\\": \\\"critica|alta|media|baja\\\", \\\"prioridad\\\": 8, \\\"requiere_aprobacion\\\": false}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [880, 0],
+      "id": "e4444444-4444-4444-4444-444444444444",
+      "name": "Ollama Prompt 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.response;\nconst prev = $('Code Parse 1').first().json;\n\nlet jsonText = text;\nif (text.includes('```json')) {\n  jsonText = text.split('```json')[1].split('```')[0];\n} else if (text.includes('{')) {\n  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);\n}\n\ntry {\n  const parsed = JSON.parse(jsonText.trim());\n  return [{ json: { ...prev, ...parsed } }];\n} catch (e) {\n  return [{ json: { ...prev, tipo: 'reposicion_stock', urgencia: prev.urgencia || 'media', prioridad: 5, requiere_aprobacion: false } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "id": "f5555555-5555-5555-5555-555555555555",
+      "name": "Code Parse 2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Eres un experto en seleccion de proveedores. Elige el mejor para esta solicitud.\\n\\nSOLICITUD:\\nProducto: {{ $json.producto_nombre }}\\nCantidad: {{ $json.cantidad }}\\nUrgencia: {{ $json.urgencia }}\\n\\nPROVEEDORES:\\n1. TextilPeru S.A. - precio bajo, entrega 3-5 dias\\n2. SportGear China - precio medio, entrega 5-7 dias\\n3. Confecciones Brasil - precio medio, entrega 4-6 dias\\n4. Adidas Direct - precio alto, entrega 2-3 dias\\n5. Nike Distribution - precio alto, entrega 1-2 dias\\n\\nRegla: urgencia critica o alta = prioriza entrega rapida. urgencia baja = prioriza precio.\\n\\nResponde SOLO JSON sin markdown:\\n{\\\"proveedor_recomendado\\\": 1, \\\"razon\\\": \\\"...\\\", \\\"confianza\\\": 85}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1320, 0],
+      "id": "a6666666-6666-6666-6666-666666666666",
+      "name": "Ollama Prompt 3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.response;\nconst prev = $('Code Parse 2').first().json;\n\nlet jsonText = text;\nif (text.includes('```json')) {\n  jsonText = text.split('```json')[1].split('```')[0];\n} else if (text.includes('{')) {\n  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);\n}\n\ntry {\n  const parsed = JSON.parse(jsonText.trim());\n  return [{ json: { ...prev, ...parsed } }];\n} catch (e) {\n  return [{ json: { ...prev, proveedor_recomendado: 1, razon: 'Proveedor default', confianza: 50 } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0],
+      "id": "b7777777-7777-7777-7777-777777777777",
+      "name": "Code Parse 3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"qwen2.5:3b\", \"prompt\": \"Genera una orden de compra con estos datos.\\n\\nDATOS:\\nSolicitud ID: {{ $json.solicitud_id }}\\nProducto: {{ $json.producto_nombre }}\\nCantidad: {{ $json.cantidad }}\\nProveedor ID: {{ $json.proveedor_recomendado }}\\nUrgencia: {{ $json.urgencia }}\\n\\nResponde SOLO JSON sin markdown:\\n{\\\"solicitud_id\\\": 0, \\\"proveedor_id\\\": 1, \\\"cantidad\\\": 0, \\\"notas\\\": \\\"resumen en 1 linea\\\", \\\"prioridad\\\": \\\"urgente|normal|baja\\\"}\", \"stream\": false, \"options\": {\"temperature\": 0.1}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1760, 0],
+      "id": "c8888888-8888-8888-8888-888888888888",
+      "name": "Ollama Prompt 4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.response;\nconst prev = $('Code Parse 3').first().json;\n\nlet jsonText = text;\nif (text.includes('```json')) {\n  jsonText = text.split('```json')[1].split('```')[0];\n} else if (text.includes('{')) {\n  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);\n}\n\ntry {\n  const parsed = JSON.parse(jsonText.trim());\n  if (!parsed.proveedor_id && prev.proveedor_recomendado) {\n    parsed.proveedor_id = prev.proveedor_recomendado;\n  }\n  if (!parsed.solicitud_id && prev.solicitud_id) {\n    parsed.solicitud_id = prev.solicitud_id;\n  }\n  return [{ json: { ...prev, ...parsed } }];\n} catch (e) {\n  return [{ json: {\n    solicitud_id: prev.solicitud_id,\n    proveedor_id: prev.proveedor_recomendado || 1,\n    cantidad: prev.cantidad || 1,\n    notas: 'Generado automaticamente',\n    prioridad: 'normal'\n  } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0],
+      "id": "d9999999-9999-9999-9999-999999999999",
+      "name": "Code Parse 4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/solicitudes-compra/generar-orden",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "solicitud_id",
+              "value": "={{ $json.solicitud_id }}"
+            },
+            {
+              "name": "proveedor_id",
+              "value": "={{ $json.proveedor_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2200, 0],
+      "id": "e0000000-0000-0000-0000-000000000001",
+      "name": "HTTP Backend"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Edit Fields", "type": "main", "index": 0}]]
+    },
+    "Edit Fields": {
+      "main": [[{"node": "Ollama Prompt 1", "type": "main", "index": 0}]]
+    },
+    "Ollama Prompt 1": {
+      "main": [[{"node": "Code Parse 1", "type": "main", "index": 0}]]
+    },
+    "Code Parse 1": {
+      "main": [[{"node": "Ollama Prompt 2", "type": "main", "index": 0}]]
+    },
+    "Ollama Prompt 2": {
+      "main": [[{"node": "Code Parse 2", "type": "main", "index": 0}]]
+    },
+    "Code Parse 2": {
+      "main": [[{"node": "Ollama Prompt 3", "type": "main", "index": 0}]]
+    },
+    "Ollama Prompt 3": {
+      "main": [[{"node": "Code Parse 3", "type": "main", "index": 0}]]
+    },
+    "Code Parse 3": {
+      "main": [[{"node": "Ollama Prompt 4", "type": "main", "index": 0}]]
+    },
+    "Ollama Prompt 4": {
+      "main": [[{"node": "Code Parse 4", "type": "main", "index": 0}]]
+    },
+    "Code Parse 4": {
+      "main": [[{"node": "HTTP Backend", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "11111111-aaaa-4bbb-8ccc-dddddddddddd",
+  "meta": {
+    "instanceId": "84c2179a699d56eea41577882b1eec6015616bf36ff6c4dc4140a1787e1b3c6c"
+  },
+  "id": "golazo4prompts001",
+  "tags": []
+}

@@ -30,7 +30,7 @@ console.log('🔧 Conectando a BD:', {
 
 // ✅ CONFIGURACIÓN OLLAMA
 const OLLAMA_HOST = 'http://localhost:11434';
-const OLLAMA_MODEL = 'smollm2:1.7b';
+const OLLAMA_MODEL = 'qwen2.5:3b';
 
 // Helper: Llamar a Ollama para interpretación con IA
 async function callOllama(systemPrompt, userPrompt, format = null) {
@@ -54,7 +54,7 @@ async function callOllama(systemPrompt, userPrompt, format = null) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      timeout: 30000
+      signal: AbortSignal.timeout(60000)
     });
 
     const data = await response.json();
@@ -333,18 +333,46 @@ app.get('/api/dashboard', async (req, res) => {
   try {
     const connection = await pool.getConnection();
 
-    const [totalProductos] = await connection.query('SELECT COUNT(*) as total FROM productos');
-    const [totalProveedores] = await connection.query('SELECT COUNT(*) as total FROM proveedores WHERE activo = TRUE');
-    const [totalInventario] = await connection.query('SELECT SUM(cantidad_disponible) as total FROM inventario');
-    const [preciosPromedio] = await connection.query('SELECT AVG(precio_venta) as promedio FROM precios WHERE activo = TRUE');
+    const [[{ totalProductos }]] = await connection.query('SELECT COUNT(*) as totalProductos FROM productos');
+    const [[{ totalProveedores }]] = await connection.query('SELECT COUNT(*) as totalProveedores FROM proveedores WHERE activo = TRUE');
+    const [[{ totalPedidos, ingresoTotal }]] = await connection.query('SELECT COUNT(*) as totalPedidos, COALESCE(SUM(total),0) as ingresoTotal FROM pedidos');
+    const [[{ solicitudesPendientes }]] = await connection.query("SELECT COUNT(*) as solicitudesPendientes FROM solicitudes_compra WHERE estado = 'pendiente'");
+    const [[{ ordenesPendientes }]] = await connection.query("SELECT COUNT(*) as ordenesPendientes FROM ordenes_compra WHERE estado = 'pendiente'");
+    const [[{ stockBajoCount }]] = await connection.query('SELECT COUNT(*) as stockBajoCount FROM productos WHERE stock <= 5');
+
+    const [stockBajo] = await connection.query(
+      'SELECT id, nombre, categoria, deporte, stock FROM productos WHERE stock <= 10 ORDER BY stock ASC LIMIT 10'
+    );
+
+    const [solicitudesPorEstado] = await connection.query(
+      'SELECT estado, COUNT(*) as total FROM solicitudes_compra GROUP BY estado ORDER BY total DESC'
+    );
+
+    const [ultimasOrdenes] = await connection.query(
+      `SELECT oc.id, oc.cantidad, oc.total, oc.estado, oc.created_at,
+              p.nombre as producto, prov.nombre as proveedor
+       FROM ordenes_compra oc
+       LEFT JOIN productos p ON oc.producto_id = p.id
+       LEFT JOIN proveedores prov ON oc.proveedor_id = prov.id
+       ORDER BY oc.created_at DESC LIMIT 5`
+    );
+
+    const [topProductos] = await connection.query(
+      `SELECT p.nombre, p.categoria, SUM(oc.cantidad) as total_pedido
+       FROM ordenes_compra oc
+       JOIN productos p ON oc.producto_id = p.id
+       GROUP BY p.id, p.nombre, p.categoria
+       ORDER BY total_pedido DESC LIMIT 5`
+    );
 
     connection.release();
 
     res.json({
-      totalProductos: totalProductos[0].total,
-      totalProveedores: totalProveedores[0].total,
-      inventarioTotal: totalInventario[0].total || 0,
-      precioPromedio: preciosPromedio[0].promedio?.toFixed(2) || 0
+      kpis: { totalProductos, totalProveedores, totalPedidos, ingresoTotal: parseFloat(ingresoTotal).toFixed(2), solicitudesPendientes, ordenesPendientes, stockBajoCount },
+      stockBajo,
+      solicitudesPorEstado,
+      ultimasOrdenes,
+      topProductos
     });
   } catch (error) {
     console.error('❌ Error GET /api/dashboard:', error.message);
@@ -1488,28 +1516,38 @@ function limpiarRespuestaOllama(texto) {
 }
 
 // Detecta si el usuario quiere crear una orden de compra
-function detectarIntencionOrden(mensaje) {
-  const msg = mensaje.toLowerCase();
-  const palabrasOrden = ['crear orden', 'generar orden', 'hacer orden', 'orden de compra',
-    'solicitud de compra', 'comprar', 'pedir', 'solicitar compra', 'genera una orden'];
-  return palabrasOrden.some(p => msg.includes(p));
+function detectarTipoMensaje(msg) {
+  const m = msg.toLowerCase();
+  // Paso 4 primero — tiene prioridad sobre todo
+  if (['solicita ', 'genera una orden', 'generar una orden', 'crear una orden',
+       'crea una orden', 'quiero pedir', 'necesito que pidas',
+       'haz una orden', 'realiza una orden'].some(p => m.includes(p))) return 'crear_orden';
+  // Paso 2 — clasificar
+  if (['clasifica', 'clasificar', 'es emergencia', 'es reposicion', 'qué tipo',
+       'que tipo', 'prioridad', 'requiere aprobacion'].some(p => m.includes(p))) return 'clasificar';
+  // Paso 3 — recomendar proveedor
+  if (['qué proveedor', 'que proveedor', 'recomiendas', 'recomiendes',
+       'mejor proveedor', 'cuál proveedor', 'cual proveedor'].some(p => m.includes(p))) return 'recomendar';
+  // Paso 1 — interpretar
+  if (['analiza', 'interpreta', 'extrae', 'analizar', 'interpretar',
+       'qué datos', 'que datos'].some(p => m.includes(p))) return 'interpretar';
+  return 'general';
 }
 
-// Extrae cantidad y producto del mensaje usando regex simple
 function extraerDatosOrden(mensaje) {
-  const cantMatch = mensaje.match(/(\d+)\s+/);
+  const cantMatch = mensaje.match(/(\d+)/);
   const cantidad = cantMatch ? parseInt(cantMatch[1]) : 1;
   return { cantidad, descripcion: mensaje };
 }
 
 app.post('/api/chatbot', async (req, res) => {
+  let connection = null;
   try {
     const { mensaje, historial = [], usuario_id = 1 } = req.body;
     if (!mensaje) return res.status(400).json({ error: 'Mensaje requerido' });
 
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
 
-    // Datos separados y claros para el modelo
     const [productos] = await connection.query(
       'SELECT id, nombre, categoria, deporte, precioOriginal as precio, stock FROM productos ORDER BY nombre LIMIT 30'
     );
@@ -1526,94 +1564,85 @@ app.post('/api/chatbot', async (req, res) => {
       'SELECT COUNT(*) as total FROM solicitudes_compra WHERE estado = "pendiente"'
     );
 
-    // Si el usuario quiere crear una orden, lo hacemos directamente sin depender del LLM
-    if (detectarIntencionOrden(mensaje)) {
+    const tipo = detectarTipoMensaje(mensaje);
+
+    // ── PASO 4: Crear orden real → dispara n8n ──────────────────────────────
+    if (tipo === 'crear_orden') {
       const { cantidad, descripcion } = extraerDatosOrden(mensaje);
-
-      // Buscar producto que más se parezca al mensaje
       const mensajeLower = mensaje.toLowerCase();
-      const productoMatch = productos.find(p =>
-        mensajeLower.includes(p.nombre.toLowerCase().split(' ')[0].toLowerCase()) ||
-        mensajeLower.includes(p.nombre.toLowerCase())
-      ) || productos[0];
+      const scored = productos.map(p => {
+        const palabras = p.nombre.toLowerCase().split(' ');
+        const coincidencias = palabras.filter(w => w.length > 2 && mensajeLower.includes(w)).length;
+        return { p, coincidencias };
+      });
+      scored.sort((a, b) => b.coincidencias - a.coincidencias);
+      const productoMatch = (scored[0].coincidencias > 0 ? scored[0].p : null) || productos[0];
 
-      const primerProveedor = proveedores[0];
-      const precioUnitario = productoMatch.precio || 150;
-      const total = cantidad * precioUnitario;
-
-      // Crear solicitud
       const [result] = await connection.query(
         'INSERT INTO solicitudes_compra (usuario_id, descripcion, stock_bajo_producto_id, cantidad_requerida, estado) VALUES (?, ?, ?, ?, ?)',
-        [usuario_id, descripcion, productoMatch.id, cantidad, 'interpretada']
+        [usuario_id, descripcion, productoMatch.id, cantidad, 'pendiente']
       );
       const solicitud_id = result.insertId;
-
-      // Crear orden
-      const [ordenResult] = await connection.query(
-        'INSERT INTO ordenes_compra (solicitud_id, proveedor_id, producto_id, cantidad, precio_unitario, total, estado) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [solicitud_id, primerProveedor.id, productoMatch.id, cantidad, precioUnitario, total, 'pendiente']
-      );
-      await connection.query(
-        'UPDATE solicitudes_compra SET estado = ?, orden_compra_id = ? WHERE id = ?',
-        ['orden_creada', ordenResult.insertId, solicitud_id]
-      );
-
       connection.release();
+
+      try {
+        await fetch('http://localhost:5678/webhook/solicitud-compra', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ solicitud_id, descripcion, cantidad_requerida: cantidad, stock_bajo_producto_id: productoMatch.id }),
+          signal: AbortSignal.timeout(10000)
+        });
+      } catch (e) {
+        console.warn('⚠️ n8n webhook no disponible:', e.message);
+      }
+
       return res.json({
-        respuesta: `✅ Orden de compra creada exitosamente.\n- Solicitud ID: ${solicitud_id}\n- Orden ID: ${ordenResult.insertId}\n- Producto: ${productoMatch.nombre}\n- Cantidad: ${cantidad} unidades\n- Precio unitario: S/${precioUnitario}\n- Total: S/${total}\n- Proveedor: ${primerProveedor.nombre}\n- Estado: Pendiente`,
-        accion: 'orden_creada',
-        orden_id: ordenResult.insertId
+        respuesta: `📋 Solicitud #${solicitud_id} registrada y enviada a n8n.\n- Producto: ${productoMatch.nombre}\n- Cantidad: ${cantidad} unidades\n- n8n está ejecutando el workflow de 4 prompts para generar la orden...\n\nRevisa el tab "Órdenes de Compra" en unos segundos.`,
+        accion: 'solicitud_creada',
+        solicitud_id
       });
     }
 
+    // ── PASOS 1-3: n8n orquesta (interpretar / clasificar / recomendar) ──────
+    if (tipo === 'interpretar' || tipo === 'clasificar' || tipo === 'recomendar') {
+      connection.release();
+      const n8nResp = await fetch('http://localhost:5678/webhook/chatbot-consulta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, mensaje }),
+        signal: AbortSignal.timeout(60000)
+      });
+      const data = await n8nResp.json();
+      const respuesta = (Array.isArray(data) ? data[0]?.respuesta : data?.respuesta) || 'Sin respuesta del asistente.';
+      return res.json({ respuesta });
+    }
+
+    // ── GENERAL: consultas libres sobre la tienda ───────────────────────────
     connection.release();
-
-    // Contexto bien separado para no confundir al modelo
     const listaProductos = productos.map(p =>
-      `  * ${p.nombre} | categoría: ${p.categoria} | deporte: ${p.deporte} | precio: S/${p.precio} | stock: ${p.stock} unidades`
+      `${p.nombre} | stock: ${p.stock} | precio: S/${p.precio}`
     ).join('\n');
+    const sistema = `Eres el asistente de GOLAZO STORE. Responde en español, breve y directo.
 
-    const listaProveedores = proveedores.map(p =>
-      `  * ${p.nombre} (ciudad: ${p.ciudad})`
-    ).join('\n');
+Datos del sistema:
+- Pedidos totales: ${pedidos[0].total} | Ingresos: S/${pedidos[0].ingresos || 0}
+- Órdenes pendientes: ${ordenesPend[0].total}
+- Solicitudes pendientes: ${solicitudes[0].total}
 
-    const contexto = `Eres el asistente de administración de GOLAZO STORE, una tienda deportiva peruana.
-
-RESUMEN OPERATIVO:
-- Total pedidos registrados: ${pedidos[0].total} | Ingresos totales: S/${pedidos[0].ingresos || 0}
-- Órdenes de compra pendientes: ${ordenesPend[0].total}
-- Solicitudes de compra pendientes: ${solicitudes[0].total}
-
-LISTA DE PRODUCTOS EN CATÁLOGO (${productos.length} productos):
-${listaProductos}
-
-LISTA DE PROVEEDORES REGISTRADOS (${proveedores.length} proveedores):
-${listaProveedores}
-
-INSTRUCCIONES:
-- Responde SOLO en español.
-- Sé breve y directo.
-- Usa los datos de arriba para responder. No inventes datos.
-- Si te preguntan por PRODUCTOS, usa la lista de productos.
-- Si te preguntan por PROVEEDORES, usa SOLO la lista de proveedores (no la de productos).
-- Si te piden crear una orden o solicitud de compra, di que ya puedes hacerlo: el usuario solo debe pedirte "crea una orden de compra de [cantidad] [producto]".`;
-
-    const historialTexto = historial
-      .slice(-4)
-      .map(m => `${m.rol === 'usuario' ? 'Admin' : 'Asistente'}: ${m.texto}`)
-      .join('\n');
-
+Productos: ${listaProductos}`;
+    const historialTexto = historial.slice(-4)
+      .map(m => `${m.rol === 'usuario' ? 'Admin' : 'Asistente'}: ${m.texto}`).join('\n');
     const promptCompleto = historialTexto
       ? `${historialTexto}\nAdmin: ${mensaje}\nAsistente:`
       : `Admin: ${mensaje}\nAsistente:`;
-
-    let respuesta = await callOllama(contexto, promptCompleto);
+    let respuesta = await callOllama(sistema, promptCompleto);
     respuesta = limpiarRespuestaOllama(respuesta);
-
     res.json({ respuesta });
   } catch (error) {
+    if (connection) connection.release();
     console.error('Error chatbot:', error.message);
-    res.status(500).json({ error: 'Error al procesar mensaje' });
+    const esTimeout = error.name === 'TimeoutError' || error.name === 'AbortError';
+    res.status(500).json({ error: esTimeout ? 'El asistente tardó demasiado. Intenta de nuevo.' : 'Error al procesar mensaje' });
   }
 });
 

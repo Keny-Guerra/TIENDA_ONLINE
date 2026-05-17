@@ -1,0 +1,138 @@
+PROMPTS PARA EL CHATBOT DEL ADMIN
+Pegar directamente en el chat de admin.html (botón 🤖)
+======================================================
+
+El chatbot usa Ollama + contexto de la BD en tiempo real.
+Algunos mensajes solo consultan, otros crean solicitudes reales.
+
+
+======================================================
+1. INTERPRETAR SOLICITUD DE COMPRA
+======================================================
+
+Copia y pega cualquiera de estos en el chatbot:
+
+--- Opción A (la más clara) ---
+Tenemos stock crítico de camisetas Brasil, necesitamos 30 unidades talla M con urgencia. ¿Puedes analizar esta solicitud y decirme qué datos se extraen de ella?
+
+--- Opción B ---
+Analiza esta solicitud: necesitamos reponer 50 polos Lakers porque el stock bajó a 3 unidades. ¿Qué producto es, cuánto se pide y qué urgencia tiene?
+
+--- Opción C ---
+Interpreta este requerimiento de compra: faltan zapatillas de fútbol talla 42, solo quedan 2 pares en almacén y hay pedidos pendientes.
+
+Qué responde el chatbot:
+  - Identifica el producto mencionado
+  - Extrae la cantidad
+  - Determina la urgencia (alta/media/baja)
+  - Resume el requerimiento con estructura clara
+
+
+======================================================
+2. CLASIFICAR REQUERIMIENTO
+======================================================
+
+Copia y pega cualquiera de estos en el chatbot:
+
+--- Opción A (la más directa) ---
+Clasifica esta solicitud: necesitamos 20 camisetas Argentina urgente, el stock llegó a cero y hay clientes esperando. ¿Es una emergencia, reposición de stock o compra planificada? ¿Requiere aprobación?
+
+--- Opción B ---
+Tengo esta situación: quedan 5 pantalones deportivos en bodega, el mínimo permitido es 15. ¿Cómo clasificarías esta compra? ¿Qué nivel de prioridad le das del 1 al 10?
+
+--- Opción C ---
+¿Qué tipo de compra sería pedir 100 camisetas para la temporada de verano con 3 semanas de anticipación? Clasifícala y dime si requiere aprobación de gerencia.
+
+Qué responde el chatbot:
+  - Tipo: emergencia / reposicion_stock / planificada
+  - Urgencia revisada: critica / alta / media / baja
+  - Prioridad (número del 1 al 10)
+  - Si requiere o no aprobación
+
+
+======================================================
+3. RECOMENDAR PROVEEDOR
+======================================================
+
+Copia y pega cualquiera de estos en el chatbot:
+
+--- Opción A (menciona urgencia explícita) ---
+Necesito comprar 40 camisetas Perú con entrega urgente en menos de 3 días. ¿Qué proveedor me recomiendas y por qué?
+
+--- Opción B (menciona precio) ---
+Quiero pedir 60 polos de Brasil sin urgencia, lo importante es conseguir el mejor precio. ¿Cuál proveedor conviene más?
+
+--- Opción C (pregunta directa por proveedores) ---
+¿Cuáles son los proveedores disponibles y cuál recomiendas para reponer zapatillas de fútbol rápido?
+
+--- Opción D ---
+Tengo que elegir proveedor para 25 camisetas Lakers. El stock es crítico y necesito entrega en máximo 2 días. ¿Cuál eliges y por qué?
+
+Qué responde el chatbot:
+  - Nombre del proveedor recomendado
+  - Razón de la elección (precio vs. velocidad)
+  - Tiempo de entrega estimado
+  - Lista de proveedores disponibles si se pregunta
+
+
+======================================================
+4. GENERAR ORDEN DE COMPRA
+======================================================
+
+Estos mensajes activan la creación REAL de una solicitud en la BD.
+El chatbot detecta palabras clave: solicita, pide, ordena, genera,
+necesito que compres, crea una orden.
+
+Copia y pega cualquiera de estos en el chatbot:
+
+--- Opción A (la más segura) ---
+Solicita 25 camisetas Brasil para reponer stock
+
+--- Opción B ---
+Genera una orden de compra de 15 polos Lakers urgente
+
+--- Opción C ---
+Necesito que pidas 30 zapatillas de fútbol talla 42 al mejor proveedor
+
+--- Opción D ---
+Crea una solicitud de compra: 20 camisetas Argentina talla L, stock crítico
+
+--- Opción E (con más detalle) ---
+Ordena 50 pantalones deportivos, el stock llegó a cero y necesitamos reposición urgente
+
+Qué hace el chatbot al recibir estos mensajes:
+  1. Detecta la intención de orden por las palabras clave
+  2. Identifica el producto mencionado (por scoring de palabras)
+  3. Extrae la cantidad del mensaje
+  4. Crea un registro real en la tabla solicitudes_compra
+  5. Dispara el webhook de n8n automáticamente
+  6. Responde confirmando la solicitud creada con su ID
+
+Cómo verificar que funcionó:
+  - Tab "Solicitudes de Compra" en admin.html → debe aparecer la nueva fila
+  - Tab "Órdenes de Compra" → si n8n está activo, aparece la orden generada
+  - API: GET http://localhost:3000/api/solicitudes-compra
+
+
+======================================================
+ORDEN SUGERIDA PARA LA DEMO DEL PROYECTO
+======================================================
+
+Paso 1 — Mostrar interpretación:
+  "Analiza esta solicitud: necesitamos 30 camisetas Brasil
+   talla M urgente porque el stock llegó a 5 unidades"
+
+Paso 2 — Mostrar clasificación:
+  "Clasifica ese requerimiento: ¿es emergencia o reposición
+   normal? ¿Qué prioridad le das?"
+
+Paso 3 — Mostrar recomendación:
+  "¿Qué proveedor recomiendas para esa compra urgente
+   de camisetas Brasil?"
+
+Paso 4 — Generar la orden (acción real):
+  "Solicita 30 camisetas Brasil urgente"
+  → El chatbot crea la solicitud y n8n genera la orden
+
+Después mostrar los tabs Solicitudes de Compra y
+Órdenes de Compra en admin.html para ver el resultado.

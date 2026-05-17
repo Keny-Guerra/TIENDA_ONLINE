@@ -1,0 +1,238 @@
+PROMPTS N8N — GOLAZO STORE
+Modelo: smollm2:1.7b  |  Temperatura: 0.1  |  Stream: false
+==============================================================
+
+Estos prompts van en el campo "Body" de cada nodo HTTP Request
+que apunta a Ollama (http://127.0.0.1:11434/api/generate).
+
+NOTA IMPORTANTE: usar 127.0.0.1 y NO localhost para Ollama
+dentro de n8n, porque n8n resuelve "localhost" como IPv6 (::1)
+y Ollama escucha en IPv4.
+
+Flujo en n8n:
+  Webhook → Edit Fields
+    → [Prompt 1 + Code 1]
+      → [Prompt 2 + Code 2]
+        → [Prompt 3 + Code 3]
+          → [Prompt 4 + Code 4]
+            → POST /api/solicitudes-compra/generar-orden
+
+
+==============================================================
+SECCIÓN 1 — INTERPRETAR SOLICITUD DE COMPRA
+==============================================================
+
+Nodo: HTTP Request → Ollama
+URL: http://127.0.0.1:11434/api/generate
+Method: POST
+Content-Type: application/json
+
+Body:
+------
+{
+  "model": "smollm2:1.7b",
+  "prompt": "Eres un experto en compras. Analiza esta solicitud y extrae los datos clave.\n\nSOLICITUD:\nDescripcion: {{$json.descripcion}}\nCantidad solicitada: {{$json.cantidad_requerida}}\nProducto ID: {{$json.stock_bajo_producto_id}}\n\nTu tarea: extraer estos campos exactos.\nResponde SOLO JSON valido sin markdown, sin texto extra, sin comillas dobles adicionales:\n{\"producto_nombre\": \"nombre del producto mencionado\", \"cantidad\": 0, \"urgencia\": \"alta|media|baja\", \"comentarios\": \"observacion breve\"}",
+  "stream": false,
+  "options": {
+    "temperature": 0.1
+  }
+}
+
+Qué extrae:
+  - producto_nombre  → nombre del producto mencionado en la solicitud
+  - cantidad         → cantidad numérica solicitada
+  - urgencia         → alta | media | baja
+  - comentarios      → observación breve (máx. 1 línea)
+
+Ejemplo de entrada:
+  descripcion: "Necesitamos 25 camisetas Brasil talla M urgente para stock critico"
+  cantidad_requerida: 25
+  stock_bajo_producto_id: 1
+
+Ejemplo de salida esperada:
+  {"producto_nombre": "Camiseta Brasil", "cantidad": 25, "urgencia": "alta", "comentarios": "Stock critico"}
+
+
+==============================================================
+SECCIÓN 2 — CLASIFICAR REQUERIMIENTO
+==============================================================
+
+Nodo: HTTP Request → Ollama
+URL: http://127.0.0.1:11434/api/generate
+Method: POST
+Content-Type: application/json
+
+Body:
+------
+{
+  "model": "smollm2:1.7b",
+  "prompt": "Clasifica esta solicitud de compra para determinar su tipo y prioridad.\n\nSOLICITUD:\nDescripcion: {{$json.descripcion}}\nProducto identificado: {{$json.producto_nombre}}\nCantidad: {{$json.cantidad}}\nUrgencia inicial: {{$json.urgencia}}\n\nCriterios de clasificacion:\n- reposicion_stock: producto con nivel bajo, compra rutinaria\n- emergencia: stock en cero o faltante critico que para operacion\n- planificada: compra anticipada sin urgencia inmediata\n\nResponde SOLO JSON valido sin markdown:\n{\"tipo\": \"reposicion_stock|emergencia|planificada\", \"urgencia\": \"critica|alta|media|baja\", \"prioridad\": 8, \"requiere_aprobacion\": false}",
+  "stream": false,
+  "options": {
+    "temperature": 0.1
+  }
+}
+
+Qué clasifica:
+  - tipo               → reposicion_stock | emergencia | planificada
+  - urgencia           → critica | alta | media | baja (puede reclasificar la urgencia inicial)
+  - prioridad          → número del 1 al 10 (10 = más urgente)
+  - requiere_aprobacion → true si prioridad >= 9 o tipo es emergencia
+
+Ejemplo de salida esperada:
+  {"tipo": "emergencia", "urgencia": "critica", "prioridad": 9, "requiere_aprobacion": true}
+
+
+==============================================================
+SECCIÓN 3 — RECOMENDAR PROVEEDOR
+==============================================================
+
+Nodo: HTTP Request → Ollama
+URL: http://127.0.0.1:11434/api/generate
+Method: POST
+Content-Type: application/json
+
+Body:
+------
+{
+  "model": "smollm2:1.7b",
+  "prompt": "Eres un experto en seleccion de proveedores. Elige el mejor proveedor para esta solicitud.\n\nSOLICITUD:\nProducto: {{$json.producto_nombre}}\nCantidad requerida: {{$json.cantidad}}\nUrgencia: {{$json.urgencia}}\nTipo: {{$json.tipo}}\n\nPROVEEDORES DISPONIBLES:\n1. TextilPeru S.A.      - precio bajo,  entrega 3-5 dias, especialidad: ropa deportiva local\n2. SportGear China      - precio medio, entrega 5-7 dias, especialidad: equipamiento variado\n3. Confecciones Brasil  - precio medio, entrega 4-6 dias, especialidad: camisetas y uniformes\n4. Adidas Direct        - precio alto,  entrega 2-3 dias, especialidad: calzado y ropa Adidas\n5. Nike Distribution    - precio alto,  entrega 1-2 dias, especialidad: calzado y ropa Nike\n\nREGLA DE DECISION:\n- urgencia critica o alta → priorizar velocidad de entrega\n- urgencia media o baja  → priorizar precio mas bajo\n- tipo emergencia        → siempre elegir el mas rapido disponible\n\nResponde SOLO JSON valido sin markdown:\n{\"proveedor_recomendado\": 1, \"razon\": \"explicacion breve de por que\", \"confianza\": 85}",
+  "stream": false,
+  "options": {
+    "temperature": 0.1
+  }
+}
+
+Qué devuelve:
+  - proveedor_recomendado → número del 1 al 5 (ID del proveedor)
+  - razon                 → justificación breve (1 línea)
+  - confianza             → porcentaje de certeza (0-100)
+
+Ejemplo de salida esperada (urgencia alta):
+  {"proveedor_recomendado": 5, "razon": "Nike Distribution entrega en 1-2 dias, prioritario por urgencia critica", "confianza": 92}
+
+Ejemplo de salida esperada (urgencia baja):
+  {"proveedor_recomendado": 1, "razon": "TextilPeru tiene el precio mas bajo para compra sin urgencia", "confianza": 88}
+
+
+==============================================================
+SECCIÓN 4 — GENERAR ORDEN DE COMPRA
+==============================================================
+
+Nodo: HTTP Request → Ollama
+URL: http://127.0.0.1:11434/api/generate
+Method: POST
+Content-Type: application/json
+
+Body:
+------
+{
+  "model": "smollm2:1.7b",
+  "prompt": "Genera el resumen ejecutivo de una orden de compra con los datos proporcionados.\n\nDATOS DE LA ORDEN:\nSolicitud ID: {{$json.solicitud_id}}\nProducto: {{$json.producto_nombre}}\nCantidad: {{$json.cantidad}}\nProveedor seleccionado ID: {{$json.proveedor_recomendado}}\nUrgencia: {{$json.urgencia}}\nTipo de compra: {{$json.tipo}}\n\nResponde SOLO JSON valido sin markdown:\n{\"solicitud_id\": 0, \"proveedor_id\": 1, \"cantidad\": 0, \"notas\": \"resumen ejecutivo en una linea\", \"prioridad\": \"urgente|normal|baja\"}",
+  "stream": false,
+  "options": {
+    "temperature": 0.1
+  }
+}
+
+Qué devuelve:
+  - solicitud_id → ID de la solicitud origen
+  - proveedor_id → ID del proveedor seleccionado
+  - cantidad     → cantidad a ordenar
+  - notas        → resumen de la orden en 1 línea
+  - prioridad    → urgente | normal | baja
+
+Ejemplo de salida esperada:
+  {"solicitud_id": 7, "proveedor_id": 5, "cantidad": 25, "notas": "Pedido urgente de 25 camisetas Brasil talla M para reponer stock critico", "prioridad": "urgente"}
+
+
+==============================================================
+CODE NODE — PARSEAR RESPUESTA DE OLLAMA
+(este mismo código va después de CADA uno de los 4 prompts)
+==============================================================
+
+Nodo: Code (JavaScript)
+
+Código:
+--------
+// Ollama puede incluir markdown (```json ... ```) o texto extra.
+// Este código extrae solo el JSON limpio.
+
+const text = $json.response;
+
+// Recuperar datos del nodo anterior para no perderlos en la cadena
+const prev = $('Edit Fields').first().json;   // <-- ajustar al nodo previo correspondiente
+
+let jsonText = text;
+if (text.includes('```json')) {
+  jsonText = text.split('```json')[1].split('```')[0];
+} else if (text.includes('{')) {
+  jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+}
+
+try {
+  const parsed = JSON.parse(jsonText.trim());
+  return [{ json: { ...prev, ...parsed } }];
+} catch (e) {
+  return [{ json: {
+    ...prev,
+    error: "No se pudo parsear la respuesta de Ollama",
+    proveedor_recomendado: 1,
+    urgencia: "media",
+    tipo: "reposicion_stock"
+  }}];
+}
+
+IMPORTANTE — referencia al nodo anterior:
+  Code Parse 1  →  $('Edit Fields').first().json
+  Code Parse 2  →  $('Code Parse 1').first().json
+  Code Parse 3  →  $('Code Parse 2').first().json
+  Code Parse 4  →  $('Code Parse 3').first().json
+
+El spread { ...prev, ...parsed } combina todos los campos
+acumulados con los nuevos del prompt actual. Así ningún
+campo se pierde entre nodos.
+
+
+==============================================================
+NODO FINAL — CREAR ORDEN EN EL BACKEND
+==============================================================
+
+Nodo: HTTP Request → Backend
+URL: http://localhost:3000/api/solicitudes-compra/generar-orden
+Method: POST
+Content-Type: application/json
+
+Body:
+------
+{
+  "solicitud_id": {{$json.solicitud_id}}
+}
+
+El backend usa el solicitud_id para consultar la BD y crear
+la orden con el proveedor que quedó registrado en el flujo.
+
+
+==============================================================
+RESUMEN DEL FLUJO COMPLETO
+==============================================================
+
+  [Webhook]          Recibe: solicitud_id, descripcion, cantidad_requerida
+       |
+  [Edit Fields]      Normaliza nombres de campos
+       |
+  [HTTP Ollama P1]   Prompt 1: interpretar solicitud
+  [Code Parse 1]     Extrae: producto_nombre, cantidad, urgencia, comentarios
+       |
+  [HTTP Ollama P2]   Prompt 2: clasificar requerimiento
+  [Code Parse 2]     Extrae: tipo, urgencia (revisada), prioridad, requiere_aprobacion
+       |
+  [HTTP Ollama P3]   Prompt 3: recomendar proveedor
+  [Code Parse 3]     Extrae: proveedor_recomendado, razon, confianza
+       |
+  [HTTP Ollama P4]   Prompt 4: generar orden
+  [Code Parse 4]     Extrae: solicitud_id, proveedor_id, cantidad, notas, prioridad
+       |
+  [HTTP Backend]     POST /api/solicitudes-compra/generar-orden
+                     → INSERT en ordenes_compra
+                     → UPDATE solicitudes_compra.estado = 'orden_creada'
