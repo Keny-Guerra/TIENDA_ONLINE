@@ -845,10 +845,10 @@ app.get('/api/reportes/productos-top', async (req, res) => {
   try {
     const connection = await pool.getConnection();
     const [top] = await connection.query(
-      `SELECT p.nombre, COUNT(*) as vendidos, SUM(c.cantidad) as totalUnidades
-       FROM carrito c
-       JOIN productos p ON c.producto_id = p.id
-       GROUP BY p.id
+      `SELECT p.nombre, COUNT(*) as vendidos, SUM(pi.cantidad) as totalUnidades
+       FROM pedido_items pi
+       JOIN productos p ON pi.producto_id = p.id
+       GROUP BY p.id, p.nombre
        ORDER BY totalUnidades DESC
        LIMIT 10`
     );
@@ -994,7 +994,7 @@ app.post('/api/solicitudes-compra', async (req, res) => {
             stock_bajo_producto_id: stock_bajo_producto_id,
             cantidad_requerida: cantidad_requerida
           }),
-          timeout: 5000
+          signal: AbortSignal.timeout(5000)
         });
 
         if (n8nResponse.ok) {
@@ -1004,70 +1004,6 @@ app.post('/api/solicitudes-compra', async (req, res) => {
         }
       } catch (error) {
         console.warn('⚠️ n8n webhook no disponible (pero solicitud creada):', error.message);
-      }
-    })();
-
-    // 🤖 Disparar workflow de Ollama automáticamente en background (BACKUP)
-    (async () => {
-      try {
-        console.log('⏳ Procesando solicitud con Ollama...');
-
-        // 1. INTERPRETACIÓN CON OLLAMA
-        const systemPrompt = `Eres un experto en gestión de compras para una tienda deportiva.
-Tu tarea es analizar solicitudes de reabastecimiento en lenguaje natural.
-Responde SOLO en JSON válido, sin texto adicional, sin markdown.
-Extrae exactamente estos campos en JSON:
-{
-  "producto_nombre": "nombre del producto solicitado",
-  "cantidad": número entero,
-  "urgencia": "baja|media|alta",
-  "presupuesto_aproximado": número en soles o null si no menciona,
-  "comentarios": "máximo 100 caracteres"
-}`;
-
-        const userPrompt = `Analiza esta solicitud de compra:\n"${descripcion}"`;
-
-        const ollamaResponse = await callOllama(systemPrompt, userPrompt, 'json');
-
-        // 2. PARSEAR RESPUESTA JSON
-        let parsed = {
-          producto_nombre: 'Desconocido',
-          cantidad: cantidad_requerida || 1,
-          urgencia: 'media',
-          presupuesto_aproximado: null,
-          comentarios: 'Procesado'
-        };
-
-        try {
-          // Limpiar markdown si existe
-          let cleanedResponse = ollamaResponse.trim();
-          if (cleanedResponse.startsWith('```json')) {
-            cleanedResponse = cleanedResponse.slice(7);
-          }
-          if (cleanedResponse.startsWith('```')) {
-            cleanedResponse = cleanedResponse.slice(3);
-          }
-          if (cleanedResponse.endsWith('```')) {
-            cleanedResponse = cleanedResponse.slice(0, -3);
-          }
-          parsed = JSON.parse(cleanedResponse.trim());
-        } catch (parseError) {
-          console.warn('⚠️ No se pudo parsear JSON, usando valores por defecto:', ollamaResponse.substring(0, 100));
-        }
-
-        // 3. ACTUALIZAR SOLICITUD CON RESPUESTA IA
-        const connection = await pool.getConnection();
-        await connection.query(
-          `UPDATE solicitudes_compra
-           SET respuesta_ia = ?, estado = 'interpretada'
-           WHERE id = ?`,
-          [JSON.stringify(parsed), solicitud_id]
-        );
-        connection.release();
-
-        console.log(`✅ Solicitud ${solicitud_id} interpretada por Ollama:`, parsed);
-      } catch (error) {
-        console.error('❌ Error procesando solicitud con Ollama:', error.message);
       }
     })();
 
@@ -1238,198 +1174,7 @@ app.put('/api/ordenes-compra/:id/estado', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// 🤖 NUEVOS ENDPOINTS - WORKFLOW OLLAMA
-// ═══════════════════════════════════════════════════════════════════
-
-// Endpoint 1: Procesar solicitud con Ollama (interpretación)
-app.post('/api/solicitudes-compra/procesar', async (req, res) => {
-  try {
-    const { solicitud_id } = req.body;
-
-    if (!solicitud_id) {
-      return res.status(400).json({ error: 'solicitud_id requerido' });
-    }
-
-    const connection = await pool.getConnection();
-    const [solicitudes] = await connection.query(
-      'SELECT * FROM solicitudes_compra WHERE id = ?',
-      [solicitud_id]
-    );
-
-    if (solicitudes.length === 0) {
-      connection.release();
-      return res.status(404).json({ error: 'Solicitud no encontrada' });
-    }
-
-    const solicitud = solicitudes[0];
-    const descripcion = solicitud.descripcion;
-
-    const systemPrompt = `Eres un experto en gestión de compras para una tienda deportiva.
-Tu tarea es analizar solicitudes de reabastecimiento.
-Responde SOLO en JSON válido, sin texto adicional, sin markdown.
-Extrae estos campos:
-{
-  "producto_nombre": "nombre del producto",
-  "cantidad": número entero,
-  "urgencia": "baja|media|alta",
-  "presupuesto_aproximado": número o null,
-  "comentarios": "hasta 100 caracteres"
-}`;
-
-    const userPrompt = `Analiza: "${descripcion}"`;
-
-    const ollamaResponse = await callOllama(systemPrompt, userPrompt, 'json');
-
-    let parsed = {
-      producto_nombre: 'Desconocido',
-      cantidad: solicitud.cantidad_requerida || 1,
-      urgencia: 'media',
-      presupuesto_aproximado: null,
-      comentarios: 'No se pudo parsear'
-    };
-
-    try {
-      let cleanedResponse = ollamaResponse.trim();
-      if (cleanedResponse.startsWith('```json')) cleanedResponse = cleanedResponse.slice(7);
-      if (cleanedResponse.startsWith('```')) cleanedResponse = cleanedResponse.slice(3);
-      if (cleanedResponse.endsWith('```')) cleanedResponse = cleanedResponse.slice(0, -3);
-      parsed = JSON.parse(cleanedResponse.trim());
-    } catch (e) {
-      console.warn('⚠️ JSON parse:', ollamaResponse.substring(0, 80));
-    }
-
-    await connection.query(
-      `UPDATE solicitudes_compra
-       SET respuesta_ia = ?, estado = 'interpretada'
-       WHERE id = ?`,
-      [JSON.stringify(parsed), solicitud_id]
-    );
-
-    connection.release();
-
-    res.json({
-      solicitud_id,
-      interpretacion: parsed,
-      mensaje: '✅ Solicitud interpretada por Ollama'
-    });
-  } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Endpoint 2: Recomendar proveedor con Ollama
-app.post('/api/solicitudes-compra/recomendar-proveedor', async (req, res) => {
-  try {
-    const { solicitud_id } = req.body;
-
-    const connection = await pool.getConnection();
-    const [solicitudes] = await connection.query(
-      'SELECT * FROM solicitudes_compra WHERE id = ?',
-      [solicitud_id]
-    );
-
-    if (solicitudes.length === 0) {
-      connection.release();
-      return res.status(404).json({ error: 'Solicitud no encontrada' });
-    }
-
-    const solicitud = solicitudes[0];
-    const interpretacion = solicitud.respuesta_ia ? JSON.parse(solicitud.respuesta_ia) : {};
-
-    // Obtener proveedores disponibles
-    const [proveedores] = await connection.query(
-      `SELECT p.id, p.nombre,
-              pr.precio_venta,
-              pr.margen_ganancia,
-              e.dias_promedio,
-              i.cantidad_stock
-       FROM proveedores p
-       LEFT JOIN precios pr ON p.id = pr.proveedor_id
-       LEFT JOIN entregas e ON p.id = e.proveedor_id
-       LEFT JOIN inventario i ON i.proveedor_id = p.id
-       LIMIT 5`
-    );
-
-    if (proveedores.length === 0) {
-      connection.release();
-      return res.status(400).json({ error: 'No hay proveedores disponibles' });
-    }
-
-    // Preparar opciones para Ollama
-    const opcionesText = proveedores.map((prov, idx) => `
-Opción ${idx + 1}: ${prov.nombre}
-- Precio: S/ ${prov.precio_venta || '0'} por unidad
-- Margen: ${prov.margen_ganancia || '0'}%
-- Tiempo entrega: ${prov.dias_promedio || '0'} días
-- Stock: ${prov.cantidad_stock || 0} unidades`).join('\n');
-
-    const systemPrompt = `Eres un experto en procurement. Debes elegir el MEJOR proveedor.
-Considera: precio, plazo, disponibilidad de stock, urgencia.
-Responde SOLO en JSON:
-{
-  "proveedor_recomendado": número (1, 2, 3...),
-  "justificacion": "máximo 150 caracteres",
-  "confianza": número 0-100
-}`;
-
-    const userPrompt = `Se necesitan ${interpretacion.cantidad || 1} unidades de "${interpretacion.producto_nombre || 'producto'}".
-Urgencia: ${interpretacion.urgencia || 'media'}
-Presupuesto: ${interpretacion.presupuesto_aproximado || 'sin límite'}
-
-Opciones:
-${opcionesText}
-
-Elige la mejor opción.`;
-
-    const ollamaResponse = await callOllama(systemPrompt, userPrompt, 'json');
-
-    let recomendacion = {
-      proveedor_recomendado: 1,
-      justificacion: 'Primer proveedor disponible',
-      confianza: 50
-    };
-
-    try {
-      let cleaned = ollamaResponse.trim();
-      if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
-      if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
-      if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-      recomendacion = JSON.parse(cleaned.trim());
-    } catch (e) {
-      console.warn('⚠️ Recomendación parse:', ollamaResponse.substring(0, 80));
-    }
-
-    const idx = Math.max(0, Math.min(recomendacion.proveedor_recomendado - 1, proveedores.length - 1));
-    const selectedProvider = proveedores[idx];
-
-    await connection.query(
-      `UPDATE solicitudes_compra
-       SET proveedor_recomendado_id = ?
-       WHERE id = ?`,
-      [selectedProvider.id, solicitud_id]
-    );
-
-    connection.release();
-
-    res.json({
-      solicitud_id,
-      proveedor: {
-        id: selectedProvider.id,
-        nombre: selectedProvider.nombre_proveedor,
-        precio_unitario: selectedProvider.precio_unitario
-      },
-      razon: recomendacion.justificacion,
-      confianza: recomendacion.confianza
-    });
-  } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Endpoint 3: Generar orden de compra automática
+// Endpoint: Generar orden de compra automática (llamado por n8n al final del workflow)
 app.post('/api/solicitudes-compra/generar-orden', async (req, res) => {
   try {
     const { solicitud_id, proveedor_id } = req.body;

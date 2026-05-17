@@ -472,8 +472,8 @@ INSERT INTO `proveedores` VALUES
 (1,'TextilPeru S.A.','Juan García','juan@textilperu.pe','+51 1 2345678','Lima','Perú',1,'2026-05-11 12:52:15'),
 (2,'SportGear China','Wei Zhang','wei@sportgear.cn','+86 10 9876543','Shanghai','China',1,'2026-05-11 12:52:15'),
 (3,'Confecciones Brasil','Carlos Silva','carlos@confbrasil.br','+55 11 98765432','São Paulo','Brasil',1,'2026-05-11 12:52:15'),
-(4,'Adidas Direct','Maria König','maria@adidas.de','+49 30 1234567','Berlín','Alemania',1,'2026-05-11 12:52:15'),
-(5,'Nike Distribution','James Wilson','james@nike-dist.us','+1 503 6712400','Oregón','USA',1,'2026-05-11 12:52:15');
+(4,'Adidas Direct','Maria König','maria@adidas.de','+49 30 1234567','Lima','Perú',1,'2026-05-11 12:52:15'),
+(5,'Nike Distribution','James Wilson','james@nike-dist.us','+1 503 6712400','Lima','Perú',1,'2026-05-11 12:52:15');
 /*!40000 ALTER TABLE `proveedores` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;

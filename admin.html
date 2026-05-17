@@ -326,6 +326,9 @@
             <button class="tab-btn" onclick="showTab('entregas')">
                 <i class="fas fa-truck"></i> Entregas
             </button>
+            <button class="tab-btn" onclick="showTab('proveedores')">
+                <i class="fas fa-handshake"></i> Proveedores
+            </button>
             <button class="tab-btn" onclick="showTab('estadisticas')">
                 <i class="fas fa-chart-bar"></i> Estadísticas
             </button>
@@ -410,6 +413,17 @@
                 </thead>
                 <tbody id="entregasBody"></tbody>
             </table>
+        </div>
+
+        <!-- TAB: PROVEEDORES -->
+        <div id="proveedores" class="content-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Proveedores</h2>
+                <button class="btn" onclick="cargarProveedores()"><i class="fas fa-sync"></i> Actualizar</button>
+            </div>
+            <div id="proveedoresGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px;">
+                <p style="color:#999; grid-column:1/-1; text-align:center;">Cargando proveedores...</p>
+            </div>
         </div>
 
         <!-- TAB: SOLICITUDES DE COMPRA -->
@@ -700,6 +714,7 @@
             cargarProductos();
             cargarPrecios();
             cargarEntregas();
+            cargarProveedores();
             cargarEstadisticas();
             cargarSelectsProductos();
             cargarSelectsProveedores();
@@ -965,6 +980,143 @@
                     selectEnt.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
                 });
             } catch (error) {
+                console.error('Error cargando proveedores:', error);
+            }
+        }
+
+        // ============================================
+        // PROVEEDORES
+        // ============================================
+        async function cargarProveedores() {
+            const grid = document.getElementById('proveedoresGrid');
+            grid.innerHTML = '<p style="color:#999; grid-column:1/-1; text-align:center;">Cargando...</p>';
+            try {
+                const provResp = await fetch(`${API_URL}/proveedores`);
+                const proveedores = await provResp.json();
+
+                const cards = await Promise.all(proveedores.map(async prov => {
+                    const precResp  = await fetch(`${API_URL}/precios/proveedor/${prov.id}`);
+                    const precios   = await precResp.json();
+
+                    const precioMin = precios.length ? Math.min(...precios.map(p => Number(p.precio_venta))) : null;
+                    const precioMax = precios.length ? Math.max(...precios.map(p => Number(p.precio_venta))) : null;
+                    const margenProm = precios.length
+                        ? (precios.reduce((s, p) => s + Number(p.margen_ganancia), 0) / precios.length).toFixed(1)
+                        : null;
+
+                    const rangoPrecio = precioMin !== null
+                        ? `S/ ${precioMin.toFixed(2)} – S/ ${precioMax.toFixed(2)}`
+                        : '—';
+
+                    const speedMap = {
+                        'TextilPeru S.A.':      { badge: 'Precio Bajo',  color: '#38a169', dias: '3–5 días' },
+                        'SportGear China':       { badge: 'Precio Medio', color: '#d69e2e', dias: '5–7 días' },
+                        'Confecciones Brasil':   { badge: 'Precio Medio', color: '#d69e2e', dias: '4–6 días' },
+                        'Adidas Direct':         { badge: 'Precio Alto',  color: '#e53e3e', dias: '2–3 días' },
+                        'Nike Distribution':     { badge: 'Precio Alto',  color: '#e53e3e', dias: '1–2 días' },
+                    };
+                    const info = speedMap[prov.nombre] || { badge: '—', color: '#718096', dias: '—' };
+
+                    const productosLista = precios.slice(0, 5).map(p =>
+                        `<tr>
+                            <td style="padding:4px 8px; font-size:12px; color:#4a5568;">${p.producto_nombre}</td>
+                            <td style="padding:4px 8px; font-size:12px; text-align:right;">S/ ${Number(p.precio_venta).toFixed(2)}</td>
+                            <td style="padding:4px 8px; font-size:12px; text-align:right; color:#38a169;">${Number(p.margen_ganancia).toFixed(1)}%</td>
+                        </tr>`
+                    ).join('');
+
+                    const masProductos = precios.length > 5
+                        ? `<tr><td colspan="3" style="padding:4px 8px; font-size:11px; color:#999;">+${precios.length - 5} productos más</td></tr>`
+                        : '';
+
+                    return `
+                    <div style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden;">
+                        <!-- Cabecera -->
+                        <div style="background:linear-gradient(135deg,#667eea,#764ba2); padding:16px 20px; color:#fff;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div>
+                                    <div style="font-size:17px; font-weight:700;">${prov.nombre}</div>
+                                    <div style="font-size:12px; opacity:.85; margin-top:2px;">
+                                        <i class="fas fa-map-marker-alt"></i> ${prov.ciudad}, ${prov.pais}
+                                    </div>
+                                </div>
+                                <span style="background:${info.color}; color:#fff; font-size:11px; font-weight:700;
+                                             padding:3px 10px; border-radius:20px; white-space:nowrap;">
+                                    ${info.badge}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Especificaciones -->
+                        <div style="padding:16px 20px; border-bottom:1px solid #f0f0f0;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px;">
+                                <div>
+                                    <div style="color:#999; font-size:11px; text-transform:uppercase; margin-bottom:2px;">Contacto</div>
+                                    <div style="color:#4a5568; font-weight:600;">${prov.contacto || '—'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#999; font-size:11px; text-transform:uppercase; margin-bottom:2px;">Teléfono</div>
+                                    <div style="color:#4a5568;">${prov.telefono || '—'}</div>
+                                </div>
+                                <div style="grid-column:1/-1;">
+                                    <div style="color:#999; font-size:11px; text-transform:uppercase; margin-bottom:2px;">Email</div>
+                                    <div style="color:#667eea;">${prov.email || '—'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#999; font-size:11px; text-transform:uppercase; margin-bottom:2px;">Entrega estimada</div>
+                                    <div style="color:#4a5568; font-weight:600;"><i class="fas fa-truck" style="color:#667eea;"></i> ${info.dias}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#999; font-size:11px; text-transform:uppercase; margin-bottom:2px;">Estado</div>
+                                    <div>
+                                        <span style="background:${prov.activo ? '#c6f6d5' : '#fed7d7'};
+                                                     color:${prov.activo ? '#276749' : '#9b2c2c'};
+                                                     padding:2px 10px; border-radius:20px; font-size:12px; font-weight:600;">
+                                            ${prov.activo ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Métricas de precios -->
+                        <div style="padding:12px 20px; background:#f7f8fc; border-bottom:1px solid #f0f0f0;
+                                    display:flex; gap:20px; font-size:13px;">
+                            <div style="text-align:center;">
+                                <div style="color:#999; font-size:11px;">Rango de precios</div>
+                                <div style="font-weight:700; color:#4a5568;">${rangoPrecio}</div>
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="color:#999; font-size:11px;">Margen promedio</div>
+                                <div style="font-weight:700; color:#38a169;">${margenProm !== null ? margenProm + '%' : '—'}</div>
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="color:#999; font-size:11px;">Productos</div>
+                                <div style="font-weight:700; color:#667eea;">${precios.length}</div>
+                            </div>
+                        </div>
+
+                        <!-- Lista de productos -->
+                        ${precios.length ? `
+                        <div style="padding:12px 20px;">
+                            <div style="font-size:12px; font-weight:700; color:#718096; margin-bottom:6px; text-transform:uppercase;">Productos y precios</div>
+                            <table style="width:100%; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="border-bottom:1px solid #e2e8f0;">
+                                        <th style="padding:4px 8px; font-size:11px; color:#999; text-align:left; font-weight:600;">Producto</th>
+                                        <th style="padding:4px 8px; font-size:11px; color:#999; text-align:right; font-weight:600;">Precio</th>
+                                        <th style="padding:4px 8px; font-size:11px; color:#999; text-align:right; font-weight:600;">Margen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${productosLista}${masProductos}</tbody>
+                            </table>
+                        </div>` : '<div style="padding:12px 20px; color:#999; font-size:13px;">Sin precios registrados</div>'}
+                    </div>`;
+                }));
+
+                grid.innerHTML = cards.join('');
+            } catch (error) {
+                grid.innerHTML = '<p style="color:#e53e3e; grid-column:1/-1; text-align:center;">Error cargando proveedores</p>';
                 console.error('Error cargando proveedores:', error);
             }
         }
